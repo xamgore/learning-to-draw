@@ -1,0 +1,359 @@
+<html>
+<head>
+    <title>task2</title></head>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            border: 0;
+            box-sizing: border-box;
+        }
+
+        * {
+           -moz-user-select: none;
+           -khtml-user-select: none;
+           -webkit-user-select: none !important;
+           -ms-user-select: none;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            font: 16px "Helvetica";
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+
+        .container > * {
+            margin: 0 0 20px;
+        }
+
+        canvas {
+            width: 800px;
+            height: 500px;
+            border: 1px solid #ddd;
+            cursor: crosshair;
+        }
+
+        :root {
+            --size: 1em;
+        }
+
+        .actions > div {
+            background: #e0e0e0;
+            padding: 4px;
+            select: none;
+            cursor: pointer;
+
+            display: inline-block;
+            border-radius: 100%;
+            width: var(--size);
+            height: var(--size);
+        }
+
+        .actions {
+            all: initial;
+            font-family: Verdana;
+            color:  gray /*#a9a9a9*/;
+            margin: 10px 0;
+        }
+
+        .sizes {
+            /*margin-left: 60px;*/
+            position: absolute;
+            right: 0;
+            float: right;
+        }
+
+        .sizes > div {
+            background: #607D8B;
+            border-radius: 100%;
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+        }
+    </style>
+<body>
+
+<div class="container  nonselectable">
+    <div class="actions">
+        <div id='clean'></div>
+        <div data-color='#ff5722'></div>
+        <div data-color='#ffeb3b'></div>
+        <div data-color='#8bc34a'></div>
+        <div data-color='#03a9f4'></div>
+    </div>
+    <canvas oncontextmenu="return false;" class="nonselectable"></canvas>
+</div>
+
+<script>
+    let $       = (s) => document.querySelector(s),
+        $$      = (s) => document.querySelectorAll(s),
+        $canvas = $('canvas'),
+        ctx     = $canvas.getContext("2d"),
+        width   = 800,
+        height  = 500,
+        scale   = 25;
+
+    ctx.canvas.width = width;
+    ctx.canvas.height = height;
+    width = Math.round(width / scale);
+    height = Math.round(height / scale);
+
+    ctx.scale(scale, scale);
+    ctx.imageSmoothingEnabled = false;
+
+    var drawing = false, mouseButton, init = true;
+
+    ctx.lineWidth = 0.05;
+    ctx.fillStyle = 'black';
+
+    $canvas.onmousedown = (e) => {
+        mouseButton = e.which;
+        drawing = true;
+        ctx.beginPath();
+
+        if (init) { init = false; ctx.lineWidth = 0.2; }
+
+        if (e.which == 3) {
+            fill(Math.floor(e.offsetX / scale) + 0.5, Math.floor(e.offsetY / scale) + 0.5, [116, 0, 244])
+        }
+    }
+
+    window.onmouseup = (_) => {
+        drawing = false;
+        ctx.closePath();
+    }
+
+    $canvas.onmousemove = function(evt) {
+        let e   = evt || event,
+            col = ctx.strokeStyle;
+
+        if (drawing && mouseButton == 1) {
+            ctx.fillRect(Math.floor(e.offsetX / scale), Math.floor(e.offsetY / scale), 1, 1);
+            ctx.fill();
+        }
+
+        document.title = `${Math.floor(e.offsetX / scale) + 0.5}×${Math.floor(e.offsetY / scale) + 0.5}`;
+
+        ctx.strokeStyle = col;
+    }
+
+    Array.prototype.equals = function(array) {
+        return this.length == array.length
+            && this.every( (el, i) => Math.abs(el - array[i]) < 5 )
+    }
+
+    Array.prototype.shiftLeft = function (n) {
+        return this.concat(this.splice(0, n));
+    }
+
+        // var pixel = ctx.getImageData(e.offsetX, e.offsetY, 1, 1);
+        // var data = pixel.data;
+        // var rgba = 'rgba(' + data[0] + ',' + data[1] +
+        //          ',' + data[2] + ',' + (data[3] / 255) + ')';
+
+    ImageData.prototype.getPixel = function (x, y) {
+        x = Math.floor(x); y = Math.floor(y);
+        let d = this.data, s = (y * this.width + x) * 4 * scale;
+
+        let [r, g, b] = [ ~~(d[s]/5)*5, ~~(d[s+1]/5)*5, ~~(d[s+2]/5)*5 ];
+
+        // console.log(`%c ${r}, ${g}, ${b} `,
+        //      `color: #ccc; background: rgba(${r||0}, ${g||0}, ${b||0}, 255);
+        //         font-size: 2em;`);
+        return [r, g, b];
+     }
+
+    ImageData.prototype.setPixel = function (x, y, vals) {
+         let d = this.data, s = (y * this.width + x) * 4;
+         d[s] = vals[0]; d[s+1] = vals[1];
+         d[s+2] = vals[2]; d[s+3] = 1;
+     }
+
+    function circle(x, y) {
+        ctx.beginPath();
+        ctx.arc(x, y, 1 / 10, 0, 3.14*2);
+        ctx.fill();
+        ctx.closePath();
+    }
+
+
+    let dirs = {
+        down: 0,
+        downright: 1,
+        right: 2,
+        upright: 3,
+        up: 4,
+        upleft: 5,
+        left: 6,
+        downleft: 7
+    }
+
+    let dirName = (x) => Object.keys(dirs)[x];
+
+    let c, backCol;
+
+    function isWhite(x, y) { return c.getPixel(x, y).equals(backCol) }
+
+    function probe(x, y, whereToGo) {
+        let p = [
+            [ x - 1, y,     dirs['left']      ],
+            [ x - 1, y + 1, dirs['downleft']  ],
+            [ x,     y + 1, dirs['down']      ],
+            [ x + 1, y + 1, dirs['downright'] ],
+            [ x + 1, y    , dirs['right']     ],
+            [ x + 1, y - 1, dirs['upright']   ],
+            [ x,     y - 1, dirs['up']        ],
+            [ x - 1, y - 1, dirs['upleft']    ]  // not possible, if we come from top
+        ].shiftLeft(whereToGo);
+
+        for (var i = 0; i < p.length; i++) {
+            let [nx, ny, d] = p[i];
+
+            if (!isWhite(nx, ny))
+                return p[i];
+        }
+
+        return [x, y, 8]; // stay here
+    };
+
+    function fill(ox, oy, fCol) {
+        if (ox < 0 || ox > width || oy < 0 || oy > height) return;
+
+        c = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+        backCol = c.getPixel(ox, oy);
+        if (backCol.equals(fCol)) return;
+
+        // find the right-hand border
+        let right = ox;
+        do { right++ } while (isWhite(right, oy));
+
+        // highlight the right border
+        var lastStyle = ctx.fillStyle;
+        ctx.fillStyle = `#ff5722`;
+        circle(right, oy);
+
+        let px = right, py = oy, pDir = dirs.down,
+            x, y, nDir;
+
+        do {
+            [x, y, nDir] = probe(px, py, pDir);
+
+            if (nDir == 8) break;
+            console.log(dirName(pDir));
+
+            ctx.fillStyle = `#03a9f4`;
+            if (x != right || y != oy)
+                circle(x, y);
+
+            [px, py, pDir] = [x, y, nDir];
+        } while (x != right || y != oy);
+
+        ctx.fillStyle = lastStyle;
+    }
+
+    function fill_(ox, oy, fCol) {
+        while (q.length) {
+            [x, y] = q.pop();
+
+            if (x < 0 || x > width || y < 0 || y > height) continue;
+
+            let col = c.getPixel(x, y);
+            if (col.equals(fCol)) continue;
+
+            let left = x, right = x;
+            for (var i = x - 1; c.getPixel(i, y).equals(col) && i >= 0; i--)
+                left = i;
+            for (let i = x + 1; c.getPixel(i, y).equals(col) && i <= width; i++)
+                right = i;
+
+            let upLine = false, botLine = false;
+
+            for (i = left; i < right; i++) {
+                c.setPixel(i, y, fCol);
+
+                // up line
+                if (!c.getPixel(i, y - 1).equals(col)) {
+                    upLine = false;
+                } else if (!upLine) {
+                    upLine = true;
+                    q.push([i, y - 1]);
+                }
+
+                // bottom
+                if (!c.getPixel(i, y + 1).equals(col)) {
+                    botLine = false;
+                } else if (!botLine) {
+                    botLine = true;
+                    q.push([i, y + 1]);
+                }
+            }
+
+        }
+
+        ctx.putImageData(c, 0, 0);
+    }
+
+
+    NodeList.prototype.forEach = Array.prototype.forEach;
+    HTMLCollection.prototype.forEach = Array.prototype.forEach;
+
+    $('.actions').children.forEach(x => x.style.backgroundColor = x.dataset.color);
+
+    let changeStrokeStyle = (e) => ctx.fillStyle = e.target.dataset.color;
+
+    $$('.actions div').forEach(x => x.onclick = changeStrokeStyle);
+
+    function SETKA() {
+        ctx.lineWidth = 0.05;
+        let last = ctx.fillStyle;
+        ctx.strokeStyle = '#eee';
+        for (let i = 0; i < width; i++) {
+            ctx.beginPath();
+            ctx.lineTo(i, 0);
+            ctx.lineTo(i, height);
+            ctx.stroke();
+            ctx.closePath();
+
+            ctx.beginPath();
+            ctx.lineTo(0, i);
+            ctx.lineTo(width, i);
+            ctx.stroke();
+            ctx.closePath();
+        }
+        ctx.strokeStyle = 'black';
+
+        ctx.fillStyle = '#f5f5f5';
+        ctx.fillRect(0, 0, width, 1);
+        ctx.fillRect(0, height - 1, width, 1);
+        ctx.fillRect(width - 1, 0, 1, height);
+        ctx.fillRect(0, 0, 1, height);
+        ctx.fill();
+
+        ctx.fillStyle = last;
+    }
+
+    $('#clean').onclick = () => {
+        ctx.lineWidth = 0.05;
+        ctx.clearRect(0, 0, width, height);
+
+        SETKA();
+    }
+
+    SETKA();
+
+
+    $canvas.onwheel = e => ctx.lineWidth *= (e.deltaY < 0) ? 3/2 : 2/3;
+
+</script>
+
+</body>
+</html>
