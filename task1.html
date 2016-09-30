@@ -84,10 +84,6 @@
 <div class="container  nonselectable">
     <div class="actions">
         <div id='clean'></div>
-        <div data-color='#ff5722'></div>
-        <div data-color='#ffeb3b'></div>
-        <div data-color='#8bc34a'></div>
-        <div data-color='#03a9f4'></div>
     </div>
     <canvas oncontextmenu="return false;" class="nonselectable"></canvas>
 </div>
@@ -122,6 +118,7 @@
         if (init) { init = false; ctx.lineWidth = 0.2; }
 
         if (e.which == 3) {
+            lefts = {}; rights = {};
             fill(Math.floor(e.offsetX / scale) + 0.5, Math.floor(e.offsetY / scale) + 0.5, [116, 0, 244])
         }
     }
@@ -154,10 +151,7 @@
         return this.concat(this.splice(0, n));
     }
 
-        // var pixel = ctx.getImageData(e.offsetX, e.offsetY, 1, 1);
-        // var data = pixel.data;
-        // var rgba = 'rgba(' + data[0] + ',' + data[1] +
-        //          ',' + data[2] + ',' + (data[3] / 255) + ')';
+    String.prototype.toF = function () { return parseFloat(this); }
 
     ImageData.prototype.getPixel = function (x, y) {
         x = Math.floor(x); y = Math.floor(y);
@@ -177,24 +171,25 @@
          d[s+2] = vals[2]; d[s+3] = 1;
      }
 
-    function circle(x, y) {
+    function circle(x, y, col, type = 0) {
+        ctx.fillStyle = col;
         ctx.beginPath();
-        ctx.arc(x, y, 1 / 10, 0, 3.14*2);
-        ctx.fill();
+
+        const r = 0.1;
+
+        if (type == 0)
+            ctx.fillRect(x - 0.2 - r, y - r, r*2, r*2);
+        else if (type == 1)
+            ctx.fillRect(x + 0.2 - r, y - r, r*2, r*2);
+        else if (type == 2)
+            ctx.fillRect(x - 0.3 - r, y - r, r*2 * 4, r*2);
+
         ctx.closePath();
     }
 
 
-    let dirs = {
-        down: 0,
-        downright: 1,
-        right: 2,
-        upright: 3,
-        up: 4,
-        upleft: 5,
-        left: 6,
-        downleft: 7
-    }
+    let dirs = { down: 0, downright: 1, right: 2, upright: 3, up: 4, upleft: 5, left: 6, downleft: 7 };
+    let d = { d: 0, dr: 1, r: 2, ur: 3, u: 4, ul: 5, l: 6, dl: 7 };
 
     let dirName = (x) => Object.keys(dirs)[x];
 
@@ -204,14 +199,14 @@
 
     function probe(x, y, whereToGo) {
         let p = [
-            [ x - 1, y,     dirs['left']      ],
-            [ x - 1, y + 1, dirs['downleft']  ],
-            [ x,     y + 1, dirs['down']      ],
-            [ x + 1, y + 1, dirs['downright'] ],
-            [ x + 1, y    , dirs['right']     ],
-            [ x + 1, y - 1, dirs['upright']   ],
-            [ x,     y - 1, dirs['up']        ],
-            [ x - 1, y - 1, dirs['upleft']    ]  // not possible, if we come from top
+            [ x - 1, y,     dirs.left      ],
+            [ x - 1, y + 1, dirs.downleft  ],
+            [ x,     y + 1, dirs.down      ],
+            [ x + 1, y + 1, dirs.downright ],
+            [ x + 1, y    , dirs.right     ],
+            [ x + 1, y - 1, dirs.upright   ],
+            [ x,     y - 1, dirs.up        ],
+            [ x - 1, y - 1, dirs.upleft    ]  // not possible, if we come from top
         ].shiftLeft(whereToGo);
 
         for (var i = 0; i < p.length; i++) {
@@ -221,8 +216,86 @@
                 return p[i];
         }
 
-        return [x, y, 8]; // stay here
+        return [x, y, whereToGo == d.d ? d.u : d.d]; // stay here
     };
+
+    var lefts = {}, rights = {};
+
+    function add(map, key, val) {
+        if (!map.hasOwnProperty(key))
+            map[key] = [];
+
+        map[key].push(val);
+    }
+
+    function smthBetween(xL, xR, y) {
+        while (xL < xR) {
+            if (!isWhite(xL, y))
+                return xL;
+            xL++;
+        }
+
+        return NaN;
+    }
+
+    function detectBorders(initX, initY) {
+        // highlight the right border
+        var lastStyle = ctx.fillStyle;
+
+        let [prevX, prevY, pDir] = [initX, initY, dirs.down],
+            nextX, nextY, nDir, fDir, _;
+
+        do {
+            [nextX, nextY, nDir] = probe(prevX, prevY, pDir);
+            [_,     _,     fDir] = probe(nextX, nextY, nDir);
+
+            if (nDir == 8) break;
+
+            let isHidden = (pDir != d.ur && nDir == d.dl && fDir == d.ul) ||
+                           (pDir != d.dl && nDir == d.ur && fDir == d.dr);
+
+            let bottomLine = (nDir == d.dl && fDir == d.l) ||
+                             (nDir == d.l && fDir == d.l) ||
+                             (nDir == d.l && fDir == d.ul);
+
+            let topLine = (nDir == d.ur && fDir == d.r) ||
+                          (nDir == d.r && fDir == d.r) ||
+                          (nDir == d.r && fDir == d.dr);
+
+            var leftSide = (nDir == d.dr) || (nDir == d.d) ||
+                           (nDir == d.l && fDir == d.r) ||
+                           // ((nDir == d.ur || nDir == d.u) && fDir == d.dl) ||
+                           ((nDir == d.ur || nDir == d.u) && (fDir == d.dl || fDir == d.d)) ||
+                           (nDir == d.ul && (fDir == d.dl || fDir == d.dr || fDir == d.d)) ||
+                           (nDir == d.dl && fDir != d.l && fDir != d.ul) ||
+                           (nDir == d.l && (fDir == d.dl || fDir == d.d || fDir == d.dr));
+
+            let rightSide = (nDir == d.ul) || (nDir == d.u) ||
+                            (nDir == d.r && fDir == d.l) ||
+                            // ((nDir == d.dl || nDir == d.d) && fDir == d.ur) ||
+                            ((nDir == d.dl || nDir == d.d) && (fDir == d.ur || fDir == d.u)) ||
+                            (nDir == d.dr && (fDir == d.ur || fDir == d.ul || fDir == d.u)) ||
+                            (nDir == d.ur && fDir != d.r && fDir != d.dr) ||
+                            (nDir == d.r && (fDir == d.ur || fDir == d.u || fDir == d.ul));
+
+            // drawings
+            if (leftSide)  circle(nextX, nextY, `#03a9f4`, 0);
+            if (rightSide) circle(nextX, nextY, `#03a9f4`, 1);
+            // if (bottomLine || topLine || isHidden)
+                // circle(nextX, nextY, `#03a9f4`, 2);
+
+            // feelings
+            if (leftSide) add(rights, nextY, nextX);
+            if (rightSide) add(lefts, nextY, nextX);
+
+            [prevX, prevY, pDir] = [nextX, nextY, nDir];
+        } while (nextX != initX || nextY != initY || !leftSide);
+
+        // starting red dot
+        circle(initX, initY, `#ff5722`, type = 0);
+
+        ctx.fillStyle = lastStyle;
+    }
 
     function fill(ox, oy, fCol) {
         if (ox < 0 || ox > width || oy < 0 || oy > height) return;
@@ -233,75 +306,53 @@
         if (backCol.equals(fCol)) return;
 
         // find the right-hand border
-        let right = ox;
-        do { right++ } while (isWhite(right, oy));
-
-        // highlight the right border
-        var lastStyle = ctx.fillStyle;
-        ctx.fillStyle = `#ff5722`;
-        circle(right, oy);
-
-        let px = right, py = oy, pDir = dirs.down,
-            x, y, nDir;
-
-        do {
-            [x, y, nDir] = probe(px, py, pDir);
-
-            if (nDir == 8) break;
-            console.log(dirName(pDir));
-
-            ctx.fillStyle = `#03a9f4`;
-            if (x != right || y != oy)
-                circle(x, y);
-
-            [px, py, pDir] = [x, y, nDir];
-        } while (x != right || y != oy);
-
-        ctx.fillStyle = lastStyle;
+        do { ox++ } while (isWhite(ox, oy));
+        detectBorders(ox, oy);
+        filz();
     }
 
-    function fill_(ox, oy, fCol) {
-        while (q.length) {
-            [x, y] = q.pop();
+    var lastSmth = -1;
 
-            if (x < 0 || x > width || y < 0 || y > height) continue;
+    function filz() {
+        let last = ctx.fillStyle;
 
-            let col = c.getPixel(x, y);
-            if (col.equals(fCol)) continue;
+        let ys = Object.keys(lefts);
+        for (let i = 0; i < ys.length; i++) {
+            let y   = ys[i].toF(),
+                lxs = lefts[y].sort((a,b) => a - b),
+                rxs = rights[y].sort((a,b) => a - b);
 
-            let left = x, right = x;
-            for (var i = x - 1; c.getPixel(i, y).equals(col) && i >= 0; i--)
-                left = i;
-            for (let i = x + 1; c.getPixel(i, y).equals(col) && i <= width; i++)
-                right = i;
+            for (let p = 0; p < lxs.length; p++) {
+                let lx = lxs[p] + 1, rx = rxs[p];
+                let smthX = smthBetween(lx, rx, y);
 
-            let upLine = false, botLine = false;
+                if (!isNaN(smthX)) {
+                    if (lastSmth == smthX)
+                        return console.log("HEY!!!! YOU ARE WELCOME");
+                    lastSmth = smthX;
 
-            for (i = left; i < right; i++) {
-                c.setPixel(i, y, fCol);
-
-                // up line
-                if (!c.getPixel(i, y - 1).equals(col)) {
-                    upLine = false;
-                } else if (!upLine) {
-                    upLine = true;
-                    q.push([i, y - 1]);
-                }
-
-                // bottom
-                if (!c.getPixel(i, y + 1).equals(col)) {
-                    botLine = false;
-                } else if (!botLine) {
-                    botLine = true;
-                    q.push([i, y + 1]);
+                    console.log(`${smthX} in [${lx} … ${rx}), y = ${y}`);
+                    detectBorders(smthX, y, [100,100,100]);
+                    return filz();
                 }
             }
 
+            // delete ys[y];
         }
 
-        ctx.putImageData(c, 0, 0);
-    }
+        for (let i = 0; i < ys.length; i++) {
+            let y   = ys[i].toF(),
+                lxs = lefts[y].sort((a,b) => a - b),
+                rxs = rights[y].sort((a,b) => a - b);
 
+            for (let p = 0; p < lxs.length; p++) {
+                let lx = lxs[p] + 1, rx = rxs[p];
+                ctx.fillStyle = `#03a9f4`;
+                ctx.fillRect(lx - 0.4, y - 0.40, rx - lx - 0.2, 0.80);
+                ctx.fillStyle = last;
+            }
+        }
+    }
 
     NodeList.prototype.forEach = Array.prototype.forEach;
     HTMLCollection.prototype.forEach = Array.prototype.forEach;
@@ -350,8 +401,16 @@
 
     SETKA();
 
+    function save() { localStorage.setItem("canva", $canvas.toDataURL()) }
 
-    $canvas.onwheel = e => ctx.lineWidth *= (e.deltaY < 0) ? 3/2 : 2/3;
+    function restore() {
+        var dataURL = localStorage.getItem("canva");
+        var img = new Image;
+        img.src = dataURL;
+        img.onload = () => ctx.drawImage(img, 0, 0, width, height)
+    }
+
+    restore();
 
 </script>
 
