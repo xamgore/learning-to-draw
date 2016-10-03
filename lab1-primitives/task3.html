@@ -1,0 +1,122 @@
+<html>
+<head>
+    <title>task2</title></head>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            border: 0;
+            box-sizing: border-box;
+        }
+
+        * {
+           -moz-user-select: none;
+           -khtml-user-select: none;
+           -webkit-user-select: none !important;
+           -ms-user-select: none;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            font: 16px "Helvetica";
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+
+        .container > * {
+            margin: 0 0 20px;
+        }
+
+        canvas {
+            width: 800px;
+            height: 500px;
+            border: 1px solid #ddd;
+            cursor: crosshair;
+        }
+
+        :root {
+            --size: 1em;
+        }
+    </style>
+<body>
+
+<div class="container">
+    <canvas oncontextmenu="return false;" class="nonselectable"/>
+</div>
+
+<script>
+    let $       = (s) => document.querySelector(s),
+        $$      = (s) => document.querySelectorAll(s),
+        $canvas = $('canvas'),
+        ctx     = $canvas.getContext("2d"),
+        width   = 800,
+        height  = 500,
+        p = 0;
+
+    ctx.canvas.width = width;
+    ctx.canvas.height = height;
+
+    // init
+    var objects = [];
+
+    for (var i = 0; i < rnd(100, 5); i++) {
+        objects.push({
+            x: rndf(width),
+            y: rndf(height),
+            r: rnd(30, 10),
+            vx: rndf(4, -4),
+            vy: rndf(4, -4),
+            color: pickCol()
+        });
+    }
+
+    function pickCol() {
+        return ['#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#00bcd4'][ p++ % 6 ];
+    }
+
+    setInterval(move, 15);
+
+    // setInterval(() => { ctx.fillStyle = 'white'; ctx.fillRect(0, 0, width, height); }, 3000);
+
+    function move() {
+        { ctx.fillStyle = 'white'; ctx.fillRect(0, 0, width, height); }
+        objects.forEach(o => {
+            if (o.x <= o.r) o.vx = Math.abs(o.vx);
+            if (o.y <= o.r) o.vy = Math.abs(o.vy);
+
+            if (o.x >= width  - o.r) o.vx = -Math.abs(o.vx);
+            if (o.y >= height - o.r) o.vy = -Math.abs(o.vy);
+
+            o.x += o.vx;
+            o.y += o.vy;
+
+            ctx.fillStyle = o.color;
+            ctx.beginPath();
+            ctx.arc(o.x, o.y, o.r, 0, 2*Math.PI);
+            ctx.fill();
+            ctx.closePath();
+        })
+    }
+
+    function rnd(to, from = 0) {
+        return Math.floor(Math.random() * (to - from) + from);
+    }
+
+    function rndf(to = 1, from = 0) {
+        return Math.random() * (to - from) + from;
+    }
+
+    // localStorage.setItem('f', $func.value);
+    // $func.value = localStorage.getItem('f') || "sin(x)";
+
+</script>
+
+</body>
+</html>

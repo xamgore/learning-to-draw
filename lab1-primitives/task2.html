@@ -1,0 +1,161 @@
+<html>
+<head>
+    <title>task2</title></head>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            border: 0;
+            box-sizing: border-box;
+        }
+
+        * {
+           -moz-user-select: none;
+           -khtml-user-select: none;
+           -webkit-user-select: none !important;
+           -ms-user-select: none;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            font: 16px "Helvetica";
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+
+        .container > * {
+            margin: 0 0 20px;
+        }
+
+        canvas {
+            width: 800px;
+            height: 500px;
+            border: 1px solid #ddd;
+            cursor: crosshair;
+        }
+
+        :root {
+            --size: 1em;
+        }
+
+        .actions > div {
+            background: #e0e0e0;
+            padding: 4px;
+            select: none;
+            cursor: pointer;
+
+            display: inline-block;
+            border-radius: 100%;
+            width: var(--size);
+            height: var(--size);
+        }
+
+        .actions {
+            all: initial;
+            font-family: Verdana;
+            color:  gray /*#a9a9a9*/;
+            margin: 10px 0;
+        }
+
+        .sizes {
+            /*margin-left: 60px;*/
+            position: absolute;
+            right: 0;
+            float: right;
+        }
+
+        .sizes > div {
+            background: #607D8B;
+            border-radius: 100%;
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+        }
+    </style>
+<body>
+
+<div class="container  nonselectable">
+    <div class="actions">
+        <div id='clean'></div>
+        <div data-color='#ff5722'></div>
+        <div data-color='#ffeb3b'></div>
+        <div data-color='#8bc34a'></div>
+        <div data-color='#03a9f4'></div>
+    </div>
+    <canvas oncontextmenu="return false;" class="nonselectable"></canvas>
+    <div style="color: #777; cursor: pointer" id='save'>save</div>
+</div>
+
+<script>
+    let $       = (s) => document.querySelector(s),
+        $$      = (s) => document.querySelectorAll(s),
+        $canvas = $('canvas'),
+        ctx     = $canvas.getContext("2d"),
+        width   = 800,
+        height  = 500;
+
+    ctx.canvas.width = width;
+    ctx.canvas.height = height;
+
+    var drawing = false, mouseButton, init = true;
+
+    $canvas.onmousedown = (e) => {
+        mouseButton = e.which;
+        drawing = true;
+        ctx.beginPath();
+        if (init) { init = false; ctx.lineWidth = 0.2; }
+    }
+
+    window.onmouseup = (_) => {
+        drawing = false;
+        ctx.closePath();
+    }
+
+    $canvas.onmousemove = function(evt) {
+        let e   = evt || event,
+            col = ctx.strokeStyle;
+
+        if (drawing) {
+            if (mouseButton == 3)
+                ctx.strokeStyle = '#fff';
+
+            ctx.lineTo(e.offsetX, e.offsetY)
+            ctx.stroke();
+        }
+
+        ctx.strokeStyle = col;
+    }
+
+
+
+    NodeList.prototype.forEach = Array.prototype.forEach;
+    HTMLCollection.prototype.forEach = Array.prototype.forEach;
+
+    $('.actions').children.forEach(x => x.style.backgroundColor = x.dataset.color);
+
+    let changeStrokeStyle = (e) => ctx.strokeStyle = e.target.dataset.color;
+
+    $$('.actions div').forEach(x => x.onclick = changeStrokeStyle);
+
+    $('#clean').onclick = () => { console.log('hello'); ctx.clearRect(0, 0, width, height); }
+
+
+    $canvas.onwheel = e => ctx.lineWidth *= (e.deltaY < 0) ? 3/2 : 2/3;
+
+    $('#save').onclick = _ => window.open(
+        $canvas.toDataURL("image/png")/*.replace("image/png", "image/octet-stream")*/, '_blank');
+
+    // localStorage.setItem('f', $func.value);
+    // $func.value = localStorage.getItem('f') || "sin(x)";
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,179 @@
+<html>
+<head>
+    <title>task1</title></head>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            border: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            font: 16px "Helvetica"
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+
+        .container > * {
+            margin: 0 0 20px;
+        }
+
+        canvas {
+            width: 800px;
+            height: 500px;
+            border: 1px solid #ddd;
+        }
+
+        input {
+            all: initial;
+            font-family: Verdana;
+            color:  gray /*#a9a9a9*/;
+        }
+
+        input[type="numeric"] {
+            text-align: center;
+        }
+    </style>
+<body>
+
+<div class="container">
+    <div style="max-width: 800px">
+        Построение графика функции. Задаются: диапазон значений, функция, необходимо построить график с возможностью масштабирования – в максимальных и минимальных точках график касается верхних и нижних границ графического окна. Обязательный тест – <code>sin(x)</code> и <code>x²</code>.
+        Необходимо предусмотреть выбор функций из некоторого списка. В функцию построения графика функцию передавать как параметр.
+    </div>
+    <div style="font-family: Verdana">
+        <label>x => </label>
+        <input type="text" id="function" placeholder="sin(x) ^ 2"/>
+    </div>
+    <canvas/>
+</div>
+
+<script>
+    let $       = (s) => document.querySelector(s),
+        $canvas = $('canvas'),
+        $func   = $('#function'),
+        ctx     = $canvas.getContext("2d"),
+        width   = 800,
+        height  = 500,
+        scale   = 2;
+
+    ctx.canvas.width = width;
+    ctx.canvas.height = height;
+
+    ctx.scale(1, -1); // y-axis upwards
+    ctx.translate(width / 2, -height / 2);
+
+
+    var translated = { x: 0, y: 0 },
+        last       = { x: 0, y: 0 },
+        dragging   = false;
+
+    $canvas.onmousedown = function(e) {
+        var evt = e || event;
+        last = { x: evt.offsetX, y: evt.offsetY };
+        dragging = true;
+    }
+
+    window.onmouseup = () => dragging = false;
+
+    window.onmousemove = function(e) {
+        var evt = e || event;
+
+        if (dragging) {
+            var deltaX = evt.offsetX - last.x;
+            var deltaY = evt.offsetY - last.y;
+
+            translated.x -= deltaX;
+            translated.y -= deltaY;
+
+            last = { x: evt.offsetX, y: evt.offsetY };
+
+            parse();  // redraw
+        }
+    }
+
+
+    function draw(func = $func.value) {
+        ctx.clearRect(-width / 2, -height / 2, width, height);
+        ctx.save();
+        ctx.beginPath();
+
+        let left  = -width/2 + translated.x,
+            right =  width/2 + translated.x;
+
+        for (let i = left; i <= right; i += 0.05) {
+            ctx.lineTo(i - translated.x, func(i/scale + 0.0041)*scale + translated.y);
+        }
+
+        ctx.stroke();
+        ctx.closePath();
+
+        ctx.restore();
+    }
+
+    function parse() {
+        let f, text = $func.value;
+
+        try {
+            Object.entries({
+                "abs": "Math.abs",
+                "sin": "Math.sin",
+                "cos": "Math.cos",
+                "tg" : "Math.tan",
+                "min": "Math.min",
+                "max": "Math.max",
+                "sqrt": "Math.sqrt",
+                "exp": "Math.exp",
+                "log": "Math.log",
+                "\\^"  : "**",
+                "\\|(.+?)\\|": "Math.abs($1)"
+            }).forEach(
+                ([ what, to ]) => { text = text.replace(new RegExp(what, 'g'), to);
+            });
+
+            f = eval(`x => ${text}`);
+            $func.style.color = "gray";
+        } catch (e) {
+            console.log(text);
+            console.log(e);
+            $func.style.color = "red";
+        }
+
+        if (f) draw(f);
+    }
+
+    $func.onkeyup = $func.onchange = () => {
+        localStorage.setItem('f', $func.value); parse();
+    };
+
+    $func.value = localStorage.getItem('f') || "sin(x)";
+
+    $canvas.onwheel = e => {
+        scale *= (e.deltaY < 0) ? 3/2 : 2/3;
+        console.log(scale);
+        parse();
+    }
+
+    var l = 0;
+    function heart(x) {
+        return l++ % 2
+            ? 30 * ( Math.abs(x/50) - Math.sqrt(1 - (x/50)**2) )
+            : 15 * ( Math.abs(x)/23 + Math.sqrt(9 - (x/20.5)**2 * 1.5) )
+    }
+
+
+
+    parse();
+</script>
+
+</body>
+</html>
