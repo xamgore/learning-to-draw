@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>task4</title></head>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            border: 0;
+            box-sizing: border-box;
+        }
+
+        * {
+           -moz-user-select: none;
+           -khtml-user-select: none;
+           -webkit-user-select: none !important;
+           -ms-user-select: none;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            font: 16px "Helvetica";
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+
+        .container > * {
+            margin: 0 0 20px;
+        }
+
+        canvas {
+            width: 800px;
+            height: 500px;
+            border: 1px solid #ddd;
+            cursor: crosshair;
+        }
+
+        :root {
+            --size: 1em;
+        }
+
+        .actions > div {
+            background: #e0e0e0;
+            padding: 4px;
+            select: none;
+            cursor: pointer;
+
+            display: inline-block;
+            border-radius: 100%;
+            width: var(--size);
+            height: var(--size);
+        }
+
+        .actions {
+            all: initial;
+            font-family: Verdana;
+            color:  gray /*#a9a9a9*/;
+            margin: 10px 0;
+        }
+
+        .sizes {
+            /*margin-left: 60px;*/
+            position: absolute;
+            right: 0;
+            float: right;
+        }
+
+        .sizes > div {
+            background: #607D8B;
+            border-radius: 100%;
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+        }
+    </style>
+
+<body>
+
+<div class="container  nonselectable">
+    <div class="actions">
+        <div id='clean'></div>
+    </div>
+    <canvas oncontextmenu="return false;" class="nonselectable"></canvas>
+</div>
+
+<script src="canvas.js"></script>
+<script>
+
+function rfpart(x) { return 1 - (x % 1); }
+
+function drawLine([x1, y1], [x2, y2]) {
+    var swapPlot = function(swapAxes, x, y, c) {
+        if (swapAxes) plot(y, x, c); else plot(x, y, c);
+    };
+
+    var dx = x2 - x1;
+    var dy = y2 - y1;
+    var swapAxes = false;
+
+    if (Math.abs(dx) < Math.abs(dy)) {
+        swapAxes = true;
+        [x1, y1] = [y1, x1];
+        [x2, y2] = [y2, x2];
+        [dx, dy] = [dy, dx];
+    }
+
+    if (x2 < x1) {
+        [x1, x2] = [x2, x1];
+        [y1, y2] = [y2, y1];
+    }
+
+    var gradient = dy / dx;
+
+    // handle first endpoint
+    var xend = Math.round(x1);
+    var yend = y1 + gradient * (xend - x1);
+    var xgap = rfpart(x1 + 0.5);
+    var xpxl1 = xend;
+    var ypxl1 = Math.floor(yend);
+
+    swapPlot(swapAxes, xpxl1, ypxl1, rfpart(yend) * xgap);
+    swapPlot(swapAxes, xpxl1, ypxl1 + 1, (yend) % 1 * xgap);
+    var intery = yend + gradient;
+
+    // handle second endpoint
+    xend = Math.round(x2);
+    yend = y2 + gradient * (xend - x2);
+    xgap = (x2 + 0.5) % 1;
+    var xpxl2 = xend;
+    var ypxl2 = Math.floor(yend);
+    swapPlot(swapAxes, xpxl2, ypxl2, rfpart(yend) * xgap);
+    swapPlot(swapAxes, xpxl2, ypxl2 + 1, (yend) % 1 * xgap);
+
+    for (x = xpxl1 + 1; x <= xpxl2 - 1; x++) {
+        swapPlot(swapAxes, x, Math.floor(intery), rfpart(intery));
+        swapPlot(swapAxes, x, Math.floor(intery) + 1, (intery) % 1);
+        intery = intery + gradient;
+    }
+}
+
+
+function plot(x, y, c) {
+    let a = Math.floor((1-c) * 255);
+    ctx.fillStyle = `rgb(${a}, ${a}, ${a})`;
+    ctx.fillRect(x, y, 1, 1); ctx.fill();
+}
+
+</script>
+
+</body>
+</html>

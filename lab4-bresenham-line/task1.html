@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>task4</title></head>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            border: 0;
+            box-sizing: border-box;
+        }
+
+        * {
+           -moz-user-select: none;
+           -khtml-user-select: none;
+           -webkit-user-select: none !important;
+           -ms-user-select: none;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            font: 16px "Helvetica";
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+
+        .container > * {
+            margin: 0 0 20px;
+        }
+
+        canvas {
+            width: 800px;
+            height: 500px;
+            border: 1px solid #ddd;
+            cursor: crosshair;
+        }
+
+        :root {
+            --size: 1em;
+        }
+
+        .actions > div {
+            background: #e0e0e0;
+            padding: 4px;
+            select: none;
+            cursor: pointer;
+
+            display: inline-block;
+            border-radius: 100%;
+            width: var(--size);
+            height: var(--size);
+        }
+
+        .actions {
+            all: initial;
+            font-family: Verdana;
+            color:  gray /*#a9a9a9*/;
+            margin: 10px 0;
+        }
+
+        .sizes {
+            /*margin-left: 60px;*/
+            position: absolute;
+            right: 0;
+            float: right;
+        }
+
+        .sizes > div {
+            background: #607D8B;
+            border-radius: 100%;
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+        }
+    </style>
+
+<body>
+
+<div class="container  nonselectable">
+    <div class="actions">
+        <div id='clean'></div>
+    </div>
+    <canvas oncontextmenu="return false;" class="nonselectable"></canvas>
+</div>
+
+<script src="canvas.js"></script>
+<script>
+
+function drawLine([x0, y0], [x1, y1]) {
+    var dx = Math.abs(x1 - x0);
+    var dy = Math.abs(y1 - y0);
+    var sx = (x0 < x1) ? 1 : -1;
+    var sy = (y0 < y1) ? 1 : -1;
+    var err = dx - dy;
+
+    while (true) {
+        plot(x0, y0);
+
+        if ((x0 == x1) && (y0 == y1)) break;
+        var e2 = 2 * err;
+        if (e2 > -dy) { err -= dy; x0  += sx; }
+        if (e2 <  dx) { err += dx; y0  += sy; }
+    }
+}
+
+function plot(x, y) {
+    ctx.fillRect(x, y, 1, 1); ctx.fill();
+}
+
+</script>
+
+</body>
+</html>
