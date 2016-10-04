@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>task2</title></head>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container  nonselectable">
+    <div class="actions">
+        <div data-color='#fff'    id="orig"></div>
+        <div data-color='#f22'    id="red"></div>
+        <div data-color='#28f200' id="gre"></div>
+        <div data-color='#0318f4' id="blu"></div>
+    </div>
+    <canvas oncontextmenu="return false;" class="nonselectable"></canvas>
+</div>
+
+<script src="fruits.js"></script>
+<script src="canvas.js"></script>
+<script>
+    let init = getImg(imageOfFruits),
+        red  = getImg(imageOfFruits),
+        gre  = getImg(imageOfFruits),
+        blu  = getImg(imageOfFruits);
+
+    compute(red, ([r, g, b]) => [r, 0, 0]);
+    compute(gre, ([r, g, b]) => [0, g, 0]);
+    compute(blu, ([r, g, b]) => [0, 0, b]);
+
+    let show = img => () => ctx.putImageData(img, (width - img.width) / 2, 0);
+
+    [ ['#orig', init], ['#red', red], ['#gre', gre], ['#blu', blu] ]
+        .forEach(([id, img]) => $(id).onclick = show(img));
+
+    show(init)();
+
+    function compute(img, formula) {
+        for (let x = 0; x < width; x++) {
+            for (let y = 0; y < height; y++) {
+                cols = img.getPixel(x, y);
+                img.setPixel(x, y, formula(cols));
+            }
+        }
+    }
+
+</script>
+
+</body>
+</html>

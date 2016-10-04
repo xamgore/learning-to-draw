@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>task1</title></head>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container  nonselectable">
+    <div class="actions">
+        <div  data-color='#fff'    id="orig"></div>
+        <div  data-color='#aeaeae' id="gray"></div>
+        <span data-color='#e6e6e6' id="eye">eye</span>
+        <span data-color='#ff6d6d' id="diff" style="color:white">diff</span>
+        <!-- <div data-color='#f22'></div>
+        <div data-color='#28f200'></div>
+        <div data-color='#0318f4'></div> -->
+    </div>
+    <canvas oncontextmenu="return false;" class="nonselectable"></canvas>
+</div>
+
+<script src="fruits.js"></script>
+<script src="canvas.js"></script>
+<script>
+    let init = getImg(imageOfFruits),
+        gray = getImg(imageOfFruits),
+        diff = getImg(imageOfFruits),
+        eyes = getImg(imageOfFruits);
+
+    const pow = 1 / 2.2;
+
+    compute(gray, (r, g, b) => 0.21 * r + 0.72 * g + 0.07 * b);
+    compute(eyes, (r, g, b) => 0.3  * r + 0.59 * g + 0.11 * b);
+    computeDiff();
+
+    let show = img => () => ctx.putImageData(img, (width - img.width) / 2, 0);
+
+    [ ['#eye', eyes], ['#gray', gray], ['#orig', init], ['#diff', diff] ]
+        .forEach(([id, img]) => $(id).onclick = show(img));
+
+    show(init)();
+
+    function compute(img, formula) {
+        for (let x = 0; x < width; x++) {
+            for (let y = 0; y < height; y++) {
+                let [r, g, b] = img.getPixel(x, y);
+
+                r = (r / 255) ** 2.2;
+                g = (g / 255) ** 2.2;
+                b = (b / 255) ** 2.2;
+
+                let Y = 255 * (formula(r, g, b)) ** pow;
+                img.setPixel(x, y, [Y, Y, Y]);
+            }
+        }
+    }
+
+    function computeDiff() {
+        for (let x = 0; x < width; x++) {
+            for (let y = 0; y < height; y++) {
+                const [r1, g1, b1] = gray.getPixel(x, y);
+                const [r2, g2, b2] = eyes.getPixel(x, y);
+                const col = [Math.abs(r1 - r2), Math.abs(g1 - g2), Math.abs(b1 - b2)];
+                diff.setPixel(x, y, col);
+            }
+        }
+    }
+</script>
+
+</body>
+</html>
