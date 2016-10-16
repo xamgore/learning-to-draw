@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>task1</title></head>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container  nonselectable">
+    <div style="color:#ccc;font-family:monospace">use mouse wheel, dude!</div>
+    <canvas oncontextmenu="return false;" class="nonselectable"></canvas>
+</div>
+
+<script src="cat.js"></script>
+<script src="canvas.js"></script>
+<script>
+    let init = getImg(imageOfFruits),
+        canv = ctx.getImageData(0, 0, width, height),
+        angle = 10;
+
+    function rotate(angle) {
+        const a = angle % 360 / 180 * 3.14;
+        let [cos, sin] = [Math.cos(a), Math.sin(a)];
+
+        let [ccx, ccy] = [-canv.width / 2, canv.height / 2];
+        let [cix, ciy] = [-init.width / 2, -init.height/ 2];
+
+        for (let x = 0; x < init.width; x++) {
+            for (let y = 0; y < init.height; y++) {
+                let col = init.getPixel(x, y);
+
+                let xc = x + cix, yc = y + ciy,
+                    $x = xc * cos - yc * sin + ccx,
+                    $y = xc * sin + yc * cos + ccy;
+
+                if (x > 0 && y > 0 && x < canv.width && y < canv.height)
+                    canv.setPixel(Math.ceil($x), Math.floor($y), col);
+                canv.setPixel(Math.floor($x), Math.floor($y), col);
+            }
+        }
+
+        ctx.show(canv);
+    }
+
+    document.onwheel = e => {
+        canv.data.fill(0);
+        angle += (e.deltaY > 0) ? 10 : -10;
+        rotate(angle);
+    }
+
+    rotate(0);
+</script>
+
+</body>
+</html>
