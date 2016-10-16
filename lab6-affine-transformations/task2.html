@@ -8,13 +8,159 @@
 <body>
 
 <div class="container  nonselectable">
-    <canvas oncontextmenu="return false;" class="nonselectable"></canvas>
+    <span style="color: #ccc">
+    <canvas oncontextmenu="return false;" class="nonselectable"
+            style="border:1px solid #eee; width:500px; height:500px"></canvas>
 </div>
 
 <script src="canvas.js"></script>
 <script>
 
+var dots = [], edges = [], changed = false;
 
+
+function move(dx = 0, dy = 0) {
+    changed = true;
+    return dots = dots.map(([x, y, c]) => [x + dx, y + dy, c]);
+}
+
+function rotate(angle = 5) {
+    move(-width / 2, -height / 2);
+
+    dots = dots.map(([x, y, c]) => {
+        const a = angle % 360 / 180 * 3.14;
+        let [cos, sin] = [Math.cos(a), Math.sin(a)];
+        return [x * cos - y * sin, x * sin + y * cos, c];
+    });
+
+    move(width / 2, height / 2);
+}
+
+function scale(k = 1.3) {
+    move(-width / 2, -height / 2);
+    dots = dots.map(([x, y, c]) => [x * k, y * k, c]);
+    move(width / 2, height / 2);
+}
+
+
+function drawPoint([x, y, col], scol) {
+    ctx.beginPath();
+    ctx.fillStyle = scol || col;
+    ctx.arc(x, y, 2, 0, 6.28);
+    ctx.fill();
+    ctx.closePath();
+}
+
+function drawEdge([sx, sy], [tx, ty]) {
+    ctx.beginPath();
+    ctx.lineWidth = 0.8;
+    ctx.strokeStyle = '#777';
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(tx, ty);
+    ctx.stroke();
+    ctx.closePath();
+}
+
+function draw() {
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, width, height);
+    ctx.fill();
+
+    dots.forEach(p => drawPoint(p));
+    edges.forEach(([s, t]) => drawEdge(dots[s], dots[t]));
+}
+
+
+function getNearestDotTo(ex, ey) {
+    // detect the nearest dot
+    let idx = -1, dist = Infinity;
+
+    for (let i = 0; i < dots.length; i++) {
+        let [x, y]  = dots[i],
+            newDist = Math.sqrt((x - ex)**2 + (y - ey)**2);
+
+        if (newDist <= dist) { idx = i; dist = newDist; }
+    }
+
+    return (idx != -1 && dist <= 8) ? idx : NaN;
+}
+
+
+var down = {};
+document.onkeydown = e => down[e.keyCode] = true;
+document.onkeyup   = e => down[e.keyCode] = false;
+
+loop();
+function loop() {
+    if (down[37]) rotate(-1);
+    if (down[39]) rotate(1);
+    if (down[38]) scale(1.02);
+    if (down[40]) scale(0.98);
+    if (down[98])  move(0, 2);
+    if (down[100]) move(-2, 0);
+    if (down[101])  move(0, 2);
+    if (down[102]) move(2, 0);
+    if (down[104]) move(0, -2);
+
+    if (changed) {
+        changed = false; draw();
+    }
+
+   setTimeout(loop, 15);
+}
+
+
+var sourceDot = NaN;
+$canvas.onmousedown = e => {
+    sourceDot = getNearestDotTo(e.offsetX, e.offsetY);
+
+    console.log(e.which, sourceDot);
+
+    if (e.which == 1 && isNaN(sourceDot)) {
+        sourceDot = dots.push([e.offsetX, e.offsetY, '#666']) - 1;
+        dots[sourceDot][2] = 'red';
+    } else if (e.which == 3) {
+        edges.removeIf(([s, t]) => s == sourceDot || t == sourceDot);
+        edges = edges.map(([s, t]) =>
+            [s > sourceDot ? s - 1 : s, t > sourceDot ? t - 1 : t]);
+
+        dots.splice(sourceDot, 1);
+        sourceDot = NaN;
+        near = NaN;
+    }
+
+    draw();
+}
+
+var destDot = NaN;
+$canvas.onmouseup = e => {
+    destDot = getNearestDotTo(e.offsetX, e.offsetY);
+
+    if (isNaN(sourceDot))
+        return;
+
+    if (isNaN(destDot)) {
+        dots[sourceDot][2] = '#666';
+        destDot = dots.push([e.offsetX, e.offsetY, '#666']) - 1;
+    }
+
+    if (sourceDot != destDot)
+        edges.push([sourceDot, destDot]);
+
+    sourceDot = NaN;
+    draw();
+}
+
+var near = NaN;
+$canvas.onmousemove = e => {
+    if (!isNaN(near)) dots[near][2] = '#666';
+    near = getNearestDotTo(e.offsetX, e.offsetY);
+    if (!isNaN(near)) dots[near][2] = 'red';
+    draw();
+
+    if (!isNaN(sourceDot))
+        drawEdge(dots[sourceDot], [e.offsetX, e.offsetY]);
+}
 
 </script>
 </body>

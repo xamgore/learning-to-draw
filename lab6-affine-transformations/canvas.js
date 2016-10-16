@@ -2,8 +2,8 @@ let $       = (s) => document.querySelector(s),
     $$      = (s) => document.querySelectorAll(s),
     $canvas = $('canvas'),
     ctx     = $canvas.getContext("2d"),
-    width   = 280,
-    height  = 280,
+    width   = 500,
+    height  = 500,
     drawing = false;
 
 ctx.canvas.width = width;
@@ -18,6 +18,14 @@ Array.prototype.equals = function(array) {
     return this.length == array.length
         && this.every( (el, i) => Math.abs(el - array[i]) < 5 )
 }
+
+Array.prototype.removeIf = function(predicate) {
+    var i = this.length;
+    while (i--) {
+        if (predicate(this[i], i))
+            this.splice(i, 1);
+    }
+};
 
 ImageData.prototype.getPixel = function (x, y) {
     let d = this.data, s = (y * this.width + x) * 4;
