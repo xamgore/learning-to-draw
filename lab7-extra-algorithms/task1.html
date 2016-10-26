@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>task1</title></head>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container  nonselectable">
+    <span style="color: #ccc">
+    <canvas oncontextmenu="return false;" class="nonselectable"
+            style="cursor: none; border:1px solid #eee;"></canvas>
+</div>
+
+<script src="canvas.js"></script>
+<script>
+
+var dots = [[200, 230, '#666'], [600, 450, '#666']], edges = [[0, 1]], changed = false;
+
+
+function drawPoint([x, y, col], scol) {
+    ctx.beginPath();
+    ctx.fillStyle = scol || col;
+    ctx.arc(x, y, 2, 0, 6.28);
+    ctx.fill();
+    ctx.closePath();
+}
+
+function drawEdge([sx, sy], [tx, ty]) {
+    ctx.beginPath();
+    ctx.lineWidth = 0.8;
+    ctx.strokeStyle = '#777';
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(tx, ty);
+    ctx.stroke();
+    ctx.closePath();
+
+    ctx.arc(tx, ty, 5, 0, 6.28);
+    ctx.fillStyle = 'rgba(170, 0, 0, 0.2)';
+    ctx.fill();
+}
+
+function draw() {
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, width, height);
+    ctx.fill();
+
+    dots.forEach(p => drawPoint(p));
+    edges.forEach(([s, t]) => drawEdge(dots[s], dots[t]));
+}
+
+
+ctx.font = '16px monospace';
+$canvas.onmousemove = e => {
+    let mouse = [e.offsetX, e.offsetY, 'rgba(0, 150, 170, 1)'],
+        dir   = direction(dots[0], dots[1], mouse);
+
+    draw();
+    drawPoint(mouse);
+    ctx.fillStyle = '#6a6a6a';
+
+    if (dir == 0)
+        ctx.fillText("On Line", e.offsetX - 35, e.offsetY - 10);
+    else if (dir < 0)
+        ctx.fillText("Right", e.offsetX + 15, e.offsetY + 4);
+    else
+        ctx.fillText("Left", e.offsetX - 50, e.offsetY + 4);
+}
+
+direction = function ([ax, ay, ac], [bx, by, bc], [cx, cy, cc]) {
+    return ((bx - ax)*(cy - by)) - ((by - ay)*(cx - bx));
+}
+
+draw();
+
+</script>
+</body>
+</html>

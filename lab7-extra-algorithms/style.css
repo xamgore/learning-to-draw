@@ -1,0 +1,87 @@
+* {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-sizing: border-box;
+}
+
+* {
+   -moz-user-select: none;
+   -khtml-user-select: none;
+   -webkit-user-select: none !important;
+   -ms-user-select: none;
+}
+
+html, body {
+    height: 100%;
+    width: 100%;
+    font: 16px "Helvetica";
+    backgroud-color: #fcfcfc;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+.container > * {
+    margin: 0 0 20px;
+}
+
+canvas {
+    width: 800px;
+    height: 600px;
+    /*border: 1px solid #ddd;*/
+    cursor: crosshair;
+}
+
+:root {
+    --size: 1em;
+}
+
+.actions > * {
+    background: #e0e0e0;
+    padding: 4px;
+    select: none;
+    cursor: pointer;
+
+    display: inline-block;
+    border-radius: 100%;
+    min-width: var(--size);
+    min-height: var(--size);
+    vertical-align: text-top;
+}
+
+.actions > span {
+    font-size: 0.45em;
+}
+
+.actions {
+    all: initial;
+    font-family: Verdana;
+    color:  gray /*#a9a9a9*/;
+    margin: 10px 0;
+}
+
+.sizes {
+    /*margin-left: 60px;*/
+    position: absolute;
+    right: 0;
+    float: right;
+}
+
+.sizes > div {
+    background: #607D8B;
+    border-radius: 100%;
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+}
+
+#orig {
+    background: url(img.jpg);
+    background-size: contain;
+}
