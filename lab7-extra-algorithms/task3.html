@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>task3</title></head>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container  nonselectable">
+    <span style="color: #ccc">
+    <canvas oncontextmenu="return false;" class="nonselectable"
+            style="cursor: none; border:1px solid #eee"></canvas>
+</div>
+
+<script src="canvas.js"></script>
+<script>
+
+var dots = [[236, 188, "#666"], [277, 86, "#666"], [357, 72, "#666"], [425, 146, "#666"], [350, 328, "#666"],
+            [458, 278, "#666"], [527, 327, "#666"], [673, 318, "#666"], [612, 392, "#666"], [651, 421, "#666"],
+            [578, 437, "#666"], [619, 507, "#666"], [510, 500, "#666"], [462, 551, "#666"], [289, 479, "#666"],
+            [224, 320, "#666"], [337, 170, "#666"], [321, 116, "#666"]],
+    edges = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [9, 10], [10, 11],
+             [12, 11], [12, 13], [13, 14], [14, 15], [15, 16], [16, 17], [17, 0]], changed = false;
+
+
+function drawPoint([x, y, col], scol, rad) {
+    ctx.beginPath();
+    ctx.fillStyle = scol || col;
+    ctx.arc(x, y, rad || 2, 0, 6.28);
+    ctx.fill();
+    ctx.closePath();
+}
+
+function drawEdge([sx, sy], [tx, ty]) {
+    ctx.beginPath();
+    ctx.lineWidth = 0.8;
+    ctx.strokeStyle = '#777';
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(tx, ty);
+    ctx.stroke();
+    ctx.closePath();
+}
+
+function draw() {
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, width, height);
+    ctx.fill();
+
+    dots.forEach(p => drawPoint(p));
+    edges.forEach(([s, t]) => drawEdge(dots[s], dots[t]));
+}
+
+
+ctx.font = '16px monospace';
+$canvas.onmousemove = e => {
+    let mouse  = [e.offsetX, e.offsetY, 'rgba(0, 150, 170, 1)'],
+        inside = inPath(mouse);
+
+    draw();
+    drawPoint(mouse);
+    ctx.fillStyle = '#6a6a6a';
+
+    if (inside)
+        drawPoint(mouse, 'rgba(0, 190, 210, 1)', 3.5);
+    else
+        drawPoint(mouse, '#ff2a2a', 3.5);
+}
+
+function inPath([x, y, _]) {
+    let c = false, dj = dots[dots.length - 1];
+
+    for (let i = 0; i < dots.length; i++) {
+        let di = dots[i];
+        if ( (di[1] > y) != (dj[1] > y) && (x < (dj[0] - di[0]) * (y - di[1]) / (dj[1] - di[1]) + di[0]) )
+            c = !c;
+        dj = di;
+    }
+
+    return c;
+}
+
+draw();
+
+</script>
+</body>
+</html>

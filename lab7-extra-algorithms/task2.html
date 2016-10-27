@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>task1</title></head>
+    <title>task2</title></head>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -10,19 +10,22 @@
 <div class="container  nonselectable">
     <span style="color: #ccc">
     <canvas oncontextmenu="return false;" class="nonselectable"
-            style="cursor: none; border:1px solid #eee;"></canvas>
+            style="cursor: none; border:1px solid #eee"></canvas>
 </div>
 
 <script src="canvas.js"></script>
 <script>
 
-var dots = [[200, 230, '#666'], [600, 450, '#666']], edges = [[0, 1]], changed = false;
+var dots = [[255, 96, "#666"], [452, 95, "#666"], [592, 222, "#666"], [596, 365, "#666"],
+            [507, 459, "#666"], [213, 488, "#666"], [76, 252, "#666"]],
+
+    edges = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 0]], changed = false;
 
 
-function drawPoint([x, y, col], scol) {
+function drawPoint([x, y, col], scol, rad) {
     ctx.beginPath();
     ctx.fillStyle = scol || col;
-    ctx.arc(x, y, 2, 0, 6.28);
+    ctx.arc(x, y, rad || 2, 0, 6.28);
     ctx.fill();
     ctx.closePath();
 }
@@ -35,10 +38,6 @@ function drawEdge([sx, sy], [tx, ty]) {
     ctx.lineTo(tx, ty);
     ctx.stroke();
     ctx.closePath();
-
-    ctx.arc(tx, ty, 5, 0, 6.28);
-    ctx.fillStyle = 'rgba(0, 150, 170, 0.2)';
-    ctx.fill();
 }
 
 function draw() {
@@ -53,19 +52,18 @@ function draw() {
 
 ctx.font = '16px monospace';
 $canvas.onmousemove = e => {
-    let mouse = [e.offsetX, e.offsetY, 'rgba(0, 150, 170, 1)'],
-        dir   = direction(dots[0], dots[1], mouse);
+    let mouse  = [e.offsetX, e.offsetY, 'rgba(0, 150, 170, 1)'],
+        dirs   = edges.map( ([a, b]) => direction(dots[a], dots[b], mouse) ),
+        inside = dirs.map(d => d > 0).reduce((x, y) => x && y);
 
     draw();
     drawPoint(mouse);
     ctx.fillStyle = '#6a6a6a';
 
-    if (Math.abs(dir) <= 200)
-        ctx.fillText("On Line", e.offsetX - 35, e.offsetY - 10);
-    else if (dir < 0)
-        ctx.fillText("Right", e.offsetX + 15, e.offsetY + 4);
+    if (inside)
+        drawPoint(mouse, 'rgba(0, 190, 210, 1)', 3.5);
     else
-        ctx.fillText("Left", e.offsetX - 50, e.offsetY + 4);
+        drawPoint(mouse, '#ff2a2a', 3.5);
 }
 
 direction = function ([ax, ay, ac], [bx, by, bc], [cx, cy, cc]) {
