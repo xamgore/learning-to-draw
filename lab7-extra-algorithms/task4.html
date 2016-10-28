@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>task4</title></head>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container  nonselectable">
+    <span style="color: #ccc">
+    <canvas oncontextmenu="return false;" class="nonselectable"
+            style="border:1px solid #eee; cursor: pointer"></canvas>
+</div>
+
+<script src="canvas.js"></script>
+<script>
+
+var dots = [[538, 499, "#666"], [465, 128, "#666"], [578, 445, "#666"], [404, 146, "#666"], [591, 405, "#666"],
+            [364, 196, "#666"], [595, 377, "#666"], [345, 276, "#666"], [595, 350, "#666"], [345, 351, "#666"],
+            [594, 327, "#666"], [377, 429, "#666"], [584, 303, "#666"], [459, 485, "#666"], [571, 267, "#666"],
+            [538, 226, "#666"], [200, 200, "#666"], [300, 300, "#666"]],
+    edges = [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10], [11, 12], [13, 14], [0, 15], [16, 17]], changed = false;
+
+
+function rotate([$x, $y, c], [dx, dy], angle = 90) {
+    const a = angle % 360 / 180 * 3.14;
+    let [cos, sin] = [Math.cos(a), Math.sin(a)];
+    let [x, y] = [$x - dx, $y - dy];
+    return [x * cos - y * sin + dx, x * sin + y * cos + dy, c];
+}
+
+function drawPoint([x, y, col], scol) {
+    ctx.beginPath();
+    ctx.fillStyle = scol || col;
+    ctx.arc(x, y, 2, 0, 6.28);
+    ctx.fill();
+    ctx.closePath();
+}
+
+function drawEdge([sx, sy], [tx, ty]) {
+    ctx.beginPath();
+    ctx.lineWidth = 0.8;
+    ctx.strokeStyle = '#777';
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(tx, ty);
+    ctx.stroke();
+    ctx.closePath();
+
+    ctx.arc((tx + sx) / 2, (ty + sy) / 2, 2.2, 0, 6.28);
+    ctx.fillStyle = 'rgba(250, 0, 0, 0.5)';
+    ctx.fill();
+}
+
+function draw() {
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, width, height);
+    ctx.fill();
+
+    dots.forEach(p => drawPoint(p));
+    edges.forEach(([s, t]) => drawEdge(dots[s], dots[t]));
+}
+
+
+document.onmousedown = e => {
+    edges.forEach(([a, b]) => {
+        let [sx, sy, sc] = dots[a],
+            [tx, ty, tc] = dots[b],
+            center = [(sx + tx) / 2, (sy + ty) / 2];
+
+        dots[a] = rotate(dots[a], center);
+        dots[b] = rotate(dots[b], center);
+    })
+
+    draw();
+}
+
+
+draw();
+
+</script>
+</body>
+</html>
