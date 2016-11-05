@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>task1</title></head>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container  nonselectable">
+    <span style="color: #ccc">
+    <canvas oncontextmenu="return false;" class="nonselectable"
+            style="border:1px solid #eee"></canvas>
+</div>
+
+<script src="lodash.js"></script>
+<script src="canvas.js"></script>
+<script src="math.js"></script>
+<script>
+
+var dots = [];
+
+
+function drawPoint([x, y, col], i) {
+    ctx.beginPath();
+    ctx.fillStyle = '#666';
+    ctx.arc(x, y, 2, 0, 6.28);
+    ctx.fillText(i, x + 5, y);
+    ctx.fill();
+    ctx.closePath();
+}
+
+function draw() {
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, width, height);
+    ctx.fill();
+
+    dots.forEach((p, i) => drawPoint(p, i));
+
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+
+    for (i = 0; i < dots.length; i += 2) {
+        let fourDots = _.take(_.drop(dots, i), 4);
+        if (fourDots.length < 4) break;
+
+        for (let t = 0; t < 1.01; t += 0.025)
+            spline(t, reformat(fourDots));
+    }
+
+    ctx.stroke();
+}
+
+function middle([x1, y1], [x2, y2]) {
+    return [(x1 + x2) / 2, (y1 + y2) / 2];
+}
+
+function reformat([a, b, c, d]) {
+    return [middle(a, b), b, c, middle(c, d)];
+}
+
+function spline(t, [p0, p1, p2, p3]) {
+    let mt = 1 - t,
+        c1 = mt  * mt * mt,
+        c2 = 3*t * mt * mt,
+        c3 = 3*t *  t * mt,
+        c4 =   t *  t *  t;
+
+    ctx.lineTo(c1 * p0[0] + c2 * p1[0] + c3 * p2[0] + c4 * p3[0],
+               c1 * p0[1] + c2 * p1[1] + c3 * p2[1] + c4 * p3[1]);
+}
+
+
+var c, dragging = false;
+
+draw();
+$canvas.onmousedown = e => {
+    c = getNearestDotTo(e.offsetX, e.offsetY);
+
+    if (e.which == 1)
+        c == -1 ? dots.push([e.offsetX, e.offsetY, '#666'])
+                : dragging = true;
+    if (e.which == 3 && c > -1)
+        dots.splice(c, 1);
+
+    draw();
+}
+
+$canvas.onmousemove = e => {
+    // console.log(dragging, c, dots[c]);
+    if (dragging) { dots[c] = [e.offsetX, e.offsetY]; draw(); }
+}
+
+$canvas.onmouseup = _ => dragging = false;
+
+function getNearestDotTo(ex, ey) {
+    // detect the nearest dot
+    let idx = -1, dist = Infinity;
+
+    for (let i = 0; i < dots.length; i++) {
+        let [x, y]  = dots[i],
+            newDist = Math.sqrt((x - ex)**2 + (y - ey)**2);
+
+        if (newDist <= dist) { idx = i; dist = newDist; }
+    }
+
+    return (dist <= 4) ? idx : -1;
+}
+
+</script>
+</body>
+</html>
