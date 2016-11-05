@@ -48,6 +48,9 @@ function draw(space) {
     ctx.beginPath();
     for (let star of space)
         ctx.lineTo(star[0], height - star[1] - 1);
+    ctx.closePath();
+    ctx.fillStyle = 'black';
+    ctx.fill();
     ctx.stroke();
 }
 
