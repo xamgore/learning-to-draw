@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>diamond-square 2D</title></head>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container  nonselectable">
+    <div style="color:gray; font: 1em monospace">
+        R: <input id="R" type="number" value="35" step="1"
+                  style="width: 4em; font: inherit; color: inherit"/>
+    </div>
+    <canvas oncontextmenu="return false;" class="nonselectable"
+            style="border:1px solid #eee"></canvas>
+</div>
+
+<script src="canvas.js"></script>
+<script src="lodash.js"></script>
+<script>
+
+function mountain() {
+    var space = [[0, 0], [0, 0]];
+    let R = $('#R').value / 100;
+
+    function improve(xl, xr, hl, hr, depth) {
+        const xc = (xr + xl) / 2;
+        const hc = (hl + hr) / 2 + R * Math.abs(hr - hl) * (Math.random() * 2 - 1);
+
+        space.push([xc, hc]);
+
+        if (depth > 1) {
+            improve(xl, xc, hl, hc, depth - 1);
+            improve(xc, xr, hc, hr, depth - 1);
+        }
+    }
+
+    improve(0, width / 2, 0, height / 2, depth = 13);
+    improve(width / 2, width, height / 2, 0, depth = 13);
+
+    return _.sortBy(space, pt => pt[0]);
+}
+
+
+function draw(space) {
+    clean();
+    ctx.beginPath();
+    for (let star of space)
+        ctx.lineTo(star[0], height - star[1] - 1);
+    ctx.stroke();
+}
+
+for (i = 0; i < (Math.random() * 100) |0; i++)
+    Math.random();
+
+draw(mountain());
+
+$('#R').onchange = () => draw(mountain());
+
+</script>
+</body>
+</html>
