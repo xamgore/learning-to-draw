@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>task1</title></head>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container  nonselectable">
+    <span style="color: #ccc">
+    <canvas oncontextmenu="return false;" class="nonselectable"
+            style="border:1px solid #eee"></canvas>
+</div>
+
+<script src="canvas.js"></script>
+<script src="lodash.js"></script>
+<script>
+
+var dots = [], edges = [], changed = false;
+
+
+function drawPoint([x, y, col], scol) {
+    ctx.beginPath();
+    ctx.fillStyle = scol || col;
+    ctx.arc(x, y, 2, 0, 6.28);
+    ctx.fill();
+    ctx.closePath();
+}
+
+function drawEdge([sx, sy], [tx, ty]) {
+    ctx.beginPath();
+    ctx.lineWidth = 0.8;
+    ctx.strokeStyle = '#777';
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(tx, ty);
+    ctx.stroke();
+    ctx.closePath();
+}
+
+function draw() {
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, width, height);
+    ctx.fill();
+
+    dots.forEach(p => drawPoint(p));
+    edges.forEach(([s, t]) => drawEdge(s, t));
+}
+
+
+$canvas.onmousedown = e => {
+    if (e.which == 1) {
+        dots.push([e.offsetX, e.offsetY, '#666']);
+    } else if (e.which == 3) {
+        dots.splice(sourceDot, 1);
+        grahamScan();
+    }
+
+    grahamScan();
+    draw();
+}
+
+function rightMost(a, b) {
+    let [x1, y1] = a, [x2, y2] = b;
+    return y1 == y2 ? (x1 > x2 ? a : b) : (y1 < y2 ? a : b)
+}
+
+function minArray(a, b) {
+    return _.every(_.zipWith(a, b, _.gte)) ? b : a;
+}
+
+function angle([oX, oY]) {
+    return ([x, y]) => Math.atan2(x - oX, y - oY);
+}
+
+function isLeft([ax, ay], [bx, by], [cx, cy]) {
+    return ((bx - ax)*(cy - by)) > ((by - ay)*(cx - bx));
+}
+
+function interconnect(x) {
+    const edges = _.zip(_.initial(x), _.tail(x));
+    edges.push([_.head(x), _.last(x)]);
+
+    const clean = (arr) => _.map(arr, ([x, y, _]) => [x, y]);
+    return clean(edges);
+}
+
+function grahamScan() {
+    edges = [], stack = [];
+    if (dots < 3) return;
+
+    let p0     = dots.reduce(rightMost),
+        sorted = _.sortBy(dots.remove(p0), angle(p0));
+
+    stack.push(p0);
+    stack.push(sorted[0]);
+
+    for (let i = 1; i < sorted.length; i++) {
+        let len = stack.length;
+
+        while (!isLeft(stack[len - 1], stack[len - 2], sorted[i]) && len) {
+            stack.pop();
+            len = stack.length;
+        }
+
+        stack.push(sorted[i]);
+    }
+
+    edges = interconnect(stack);
+}
+
+draw();
+
+</script>
+</body>
+</html>
