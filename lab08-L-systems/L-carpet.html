@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>carpet</title></head>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .list {
+            /*font-variant: small-caps;*/
+            font: 0.6em Helvetica;
+            margin: 0 0 0.2em;
+        }
+
+        .list span {
+            margin: 0 0.5em;
+        }
+
+        canvas {
+            height: 400px;
+            width: 400px;
+        }
+
+        #R {
+            all: initial;
+            background: #ccc;
+            padding: 0 0.7em;
+            vertical-align: text-top;
+            cursor: pointer;
+            font: 0.8em monospace;
+        }
+
+        #T {
+            border-bottom: 1px solid;
+            min-width: 150px;
+            height: 70px;
+            font: 1em monospace;
+            padding: 0.5em
+        }
+    </style>
+</head>
+<body>
+
+<div class="container  nonselectable">
+    <div class="list">
+        <span style="padding: 0 1.7em">axiom</span>
+        <span>angle</span>
+        <span>direct</span>
+    </div>
+    <div style="margin: 0">
+        <input id="S" value="F+F+F+F"  style="font: 1em monospace; width: 4em; text-align: center"/>
+        <input id="A" value="90" style="font: 1em monospace; width: 2em; text-align: center"/>
+        <input id="D" value="90"  style="font: 1em monospace; width: 2em; text-align: center"/>
+        <hr style="width: 100%; border: 1px solid; margin: 0.5em 0"/>
+    </div>
+    <div><textarea id="T">F → F+F-F-FF+F+F-F</textarea> <button id="R">↻</button></div>
+
+    <canvas oncontextmenu="return false;" class="nonselectable"
+            style="border:1px solid #eee"></canvas>
+    <a href="task1.html" style="font: 1em monospace; color: black">back</a>
+</div>
+
+<script src="canvas.js"></script>
+<script src="lodash.js"></script>
+<script src="turtle.js"></script>
+<script src="system.js"></script>
+<script>
+
+width = 200;
+height = 200;
+
+function draw() {
+    let angle = A.value,
+        step  = width / (3**(iter - 1));
+
+    clear();
+    turtle.pos = {x: -width, y: height };
+    turtle.angle = degToRad(D.value);
+
+    for (let i = 0; i < sent.length; i++) {
+        let ch = sent[i];
+
+        switch (ch) {
+            case "F": forward(step); break;
+            case "-": turnLeft(angle); break;
+            case "+": turnRight(angle); break;
+        }
+    }
+}
+
+</script>
+</body>
+</html>
