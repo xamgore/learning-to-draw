@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>task1</title></head>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container  nonselectable">
+    <span style="color: #ccc">
+    <canvas oncontextmenu="return false;" class="nonselectable"
+            style="border:1px solid #eee"></canvas>
+</div>
+
+<script src="lodash.js"></script>
+<script src="canvas.js"></script>
+<script src="figures.js"></script>
+<script src="motions.js"></script>
+<script>
+
+
+function project(V) {
+	return new Vertex2D(V.x, V.z);
+}
+
+function render(objects, ctx, dx, dy) {
+    const lineTo = (p) => ctx.lineTo(p.x + dx, -p.y + dy);
+
+    const drawFace = face => {
+        ctx.beginPath();
+        _.each(_.map(face, project), lineTo);
+		ctx.closePath();
+		ctx.stroke();
+		ctx.fill();
+    }
+
+    ctx.clearRect(0, 0, width, height);
+
+    _.each(objects, obj => {
+        ctx.fillStyle = obj.color;
+        _.each(obj.faces, drawFace);
+    });
+}
+
+
+// Fix the canvas width and height
+var dx = width / 2;
+var dy = height / 2;
+
+// Objects style
+ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+
+// Create the cube
+var objects = [
+    new Cube (new Vertex(0,    0, 0),    dy / 4),
+    new Tetra(new Vertex(200,  0, 0),     dy / 4),
+    new Octa (new Vertex(-200, 0, 0),     dy / 4),
+    new Dode (new Vertex(0,    0, 200),  dy / 4),
+    new Icos (new Vertex(0,    0, -200), dy / 4),
+];
+
+// First render
+render(objects, ctx, dx, dy);
+
+// Events
+var mousedown = false;
+var mx = 0;
+var my = 0;
+
+$canvas.addEventListener('mousedown', initMove);
+document.addEventListener('mousemove', move);
+document.addEventListener('mouseup', stopMove);
+document.addEventListener('wheel', wheel);
+
+function rotate(center, theta, phi) {
+    let [x, y, z] = [center.x, center.y, center.z];
+
+    return M.pipe(...[
+        M.move(x, y, z),   M.rotateOx(phi),
+        M.rotateOz(theta), M.move(-x, -y, -z),
+    ])
+}
+
+function applyAll(objects, getMatrix) {
+    _.each(objects, obj => {
+        const matrix = getMatrix(obj);
+        _.each(obj.vertices, vtx => vtx.apply(matrix));
+    });
+}
+
+
+// Initialize the movement
+function initMove(evt) {
+	// clearTimeout(autorotate_timeout);
+	mousedown = true;
+	mx = evt.clientX;
+	my = evt.clientY;
+}
+
+function move(evt) {
+	if (!mousedown) return;
+
+	let theta = (evt.clientX - mx) * Math.PI / 360,
+	      phi = (evt.clientY - my) * Math.PI / 180;
+
+    applyAll(objects, _ => evt.ctrlKey
+                ? M.move(evt.clientX - mx, 0, -evt.clientY + my)
+                : rotate(new Vertex(0, 0, 0), theta, phi));
+
+	mx = evt.clientX;
+	my = evt.clientY;
+
+	render(objects, ctx, dx, dy);
+}
+
+function stopMove() {
+	mousedown = false;
+	// autorotate_timeout = setTimeout(autorotate, 2000);
+}
+
+function wheel(e) {
+    let s = e.deltaY > 0 ? 9/10 : 10/9;
+    applyAll(objects, _ => M.scale(s, s, s));
+	render(objects, ctx, dx, dy);
+}
+
+function autorotate() {
+    applyAll(objects, obj => rotate(obj.center, -Math.PI / 720, Math.PI / 720));
+	render(objects, ctx, dx, dy);
+
+	autorotate_timeout = setTimeout(autorotate, 30);
+}
+
+autorotate_timeout = setTimeout(autorotate, 2000);
+
+</script>
+</body>
+</html>
