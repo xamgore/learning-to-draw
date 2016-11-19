@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Task 3</title>
+    <link rel="stylesheet" href="style.css">
+
+    <script src="lodash.min.js"></script>
+    <script src="bluebird.min.js"></script>
+    <script src="gl-matrix-min.js"></script>
+    <script src="gl-shaders.js"></script>
+    <script src="gl-util.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <canvas oncontextmenu="return false" width="800" height="600"></canvas>
+</div>
+
+<a href="/" class="back">◀</a>
+
+<script>
+
+let gl, shProg;
+
+let mvMatrix = mat4.create(),
+    pMatrix  = mat4.create(),
+    rMatrix  = mat4.create();
+
+let vertsBuf, colorBuf,
+    positions = [[0, 0, -7]],
+    angles = [],
+    colors = [];
+
+
+function init(webgl, program) {
+    shProg = program;
+    gl = webgl;
+
+    initShaders();
+    vertsBuf = createTriangleBuffer();
+    colors = [fillColorBuffer(33, 150, 243, 255)];
+    angles = [0];
+
+    gl.clearColor(0.99, 0.99, 0.99, 1.0);
+    gl.enable(gl.DEPTH_TEST);
+
+    // load triangle
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertsBuf);
+    gl.vertexAttribPointer(shProg.aVertPos, 3, gl.FLOAT, false, 0, 0);
+
+    tick();
+}
+
+function tick() {
+    requestAnimationFrame(tick);
+    draw();
+}
+
+
+function initShaders() {
+    gl.useProgram(shProg);
+
+    shProg.aVertPos = gl.getAttribLocation(shProg, 'aVertPos');
+    gl.enableVertexAttribArray(shProg.aVertPos);
+
+    shProg.aVertCol = gl.getAttribLocation(shProg, 'aVertCol');
+    gl.enableVertexAttribArray(shProg.aVertCol);
+
+    shProg.uPMatrix  = gl.getUniformLocation(shProg, 'uPMatrix');
+    shProg.uMVMatrix = gl.getUniformLocation(shProg, 'uMVMatrix');
+    shProg.uRtMatrix = gl.getUniformLocation(shProg, 'uRtMatrix');
+}
+
+function fillColorBuffer(...col4v) {
+    const normed = _.map(col4v, x => x / 255);
+    const colors = _.flatten([normed, normed, normed]);
+
+    buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+    return buf;
+}
+
+
+function draw() {
+    gl.viewport(0, 0, gl.width, gl.height);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    mat4.perspective(pMatrix, 90, gl.width / gl.height, 0.1, 100);
+    gl.uniformMatrix4fv(shProg.uPMatrix, false, pMatrix);
+
+    for (let i = positions.length - 1; i >= 0; i--) {
+        let p      = positions[i],
+            angle  = angles[i],
+            colBuf = colors[i];
+
+        mat4.fromTranslation(mvMatrix, p);
+        gl.uniformMatrix4fv(shProg.uMVMatrix, false, mvMatrix);
+
+        mat4.fromRotation(rMatrix, glMatrix.toRadian(angle), [0, 0, 1]);
+        gl.uniformMatrix4fv(shProg.uRtMatrix, false, rMatrix);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, colBuf);
+        gl.vertexAttribPointer(shProg.aVertCol, 4, gl.FLOAT, false, 0, 0);
+
+        gl.drawArrays(gl.TRIANGLES, 0, vertsBuf.size);
+    }
+}
+
+
+let pressing = false, last = [];
+
+document.onmousedown = e => {
+    let x = e.offsetX * 2 || _.random(0, gl.width),
+        y = e.offsetY * 2 || _.random(0, gl.height);
+
+    let s = (unproject(x, y));
+    positions.push([s[0] * 7, s[1] * -7, -7]);
+    colors.push(fillColorBuffer(_.random(10, 240), _.random(10, 240), _.random(10, 240), 255));
+    angles.push(_.random(0, 360));
+
+    // draw();
+    pressing = true;
+    last = [x, y];
+};
+
+$('canvas').onmousemove = e => {
+    if (!pressing) return;
+    let a =  Math.atan2(last[0] - e.x * 2, last[1] - e.y * 2) / Math.PI * 180;
+    angles[angles.length - 1] = a;
+};
+
+$('canvas').ontouchmove = e => {
+    if (e.touches.length != 2) return;
+    let a = e.touches.item(0);
+    alert(JSON.stringify(a));
+};
+
+$('canvas').onmouseup = _ => pressing = false;
+
+
+function unproject(wx, wy) {
+    let inp = [wx, wy, -7, 1];
+
+    let fm = mat4.create();
+
+    mat4.multiply(fm, mvMatrix, pMatrix);
+    mat4.invert(fm, fm);
+
+    let view = gl.getParameter(gl.VIEWPORT);
+
+    /* Map x and y from window coordinates */
+    inp[0] = (inp[0] - view[0]) / view[2];
+    inp[1] = (inp[1] - view[1]) / view[3];
+
+    /* Map to range -1 to 1 */
+    inp[0] = inp[0] * 2 - 1;
+    inp[1] = inp[1] * 2 - 1;
+    inp[2] = inp[2] * 2 - 1;
+
+    let out = vec4.create();
+
+    mat4MulByVec4(out, fm, inp);
+    if (out[3] === 0.0) {
+        return false;
+    }
+
+    return out;
+}
+
+
+function mat4MulByVec4(out, a, b) {
+    let a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3],
+        a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7],
+        a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11],
+        a30 = a[12], a31 = a[13], a32 = a[14], a33 = a[15];
+
+    let b0  = b[0], b1 = b[1], b2 = b[2], b3 = b[3];
+
+    out[0] = b0*a00 + b1*a01 + b2*a02 + b3*a03;
+    out[1] = b0*a10 + b1*a11 + b2*a12 + b3*a13;
+    out[2] = b0*a20 + b1*a21 + b2*a22 + b3*a23;
+    out[3] = b0*a30 + b1*a31 + b2*a32 + b3*a33;
+}
+
+
+
+function loadWebGL() {
+    loadWebGLContext($('canvas'))
+        .then(gl => {
+            Promise.all([
+                loadShader(gl, gl.FRAGMENT_SHADER, 'task3/shader-fs.c'),
+                loadShader(gl, gl.VERTEX_SHADER,   'task3/shader-vs.c')])
+            .then(gl.utilCreateProgram.bind(gl))
+            .then(program => init(gl, program));
+        });
+}
+
+</script>
+</body>
+</html>
