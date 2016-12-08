@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Task 1</title>
+    <link rel="stylesheet" href="style.css">
+
+    <script src="bluebird.min.js"></script>
+    <script src="gl-matrix-min.js"></script>
+    <script src="gl-shaders.js"></script>
+    <script src="gl-util.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <canvas oncontextmenu="return false" width="800" height="600"></canvas>
+</div>
+
+<div style="position: absolute; top: 10px; right: 10px; flex-grow: column">
+    x: <input id="sx" type="range" value="1" min="1" max="5" step="0.25"><br/>
+    y: <input id="sy" type="range" value="1" min="1" max="5" step="0.25"><br/>
+    <hr style="border: 1px solid black">
+    angle: <input id="an" type="number" value="90" step="2">
+    <hr style="border: 1px solid black">
+    dx: <input id="dx" type="range" value="0" min="-10" max="10" step="0.25"><br/>
+    dy: <input id="dy" type="range" value="0" min="-10" max="10" step="0.25"><br/>
+</div>
+<hr style="border: 1px solid black">
+<a href="/" class="back">◀</a>
+
+<script>
+
+let gl, shProg, triangle;
+
+let
+    rot     = mat4.create(),
+    scale   = mat4.create(),
+    move    = mat4.create(),
+    project = mat4.create();
+
+
+function init(webgl, program) {
+    shProg = program;
+    gl = webgl;
+
+    // init shaders
+    gl.useProgram(shProg);
+
+    shProg.aVertPos = gl.getAttribLocation(shProg, 'aVertPos');
+    gl.enableVertexAttribArray(shProg.aVertPos);
+
+    shProg.uScale   = gl.getUniformLocation(shProg, 'uScale');
+    shProg.uProject = gl.getUniformLocation(shProg, 'uProject');
+    shProg.uMove    = gl.getUniformLocation(shProg, 'uMove');
+    shProg.uRot     = gl.getUniformLocation(shProg, 'uRot');
+
+    // set environment
+    mat4.perspective(project, 45, gl.width / gl.height, 0.1, 100);
+    triangle = createTriangleBuffer();
+
+    gl.clearColor(0.99, 0.99, 0.99, 1.0);
+    gl.enable(gl.DEPTH_TEST);
+
+    draw();
+}
+
+
+function setMatrixUniforms() {
+    gl.uniformMatrix4fv(shProg.uProject, false, project);
+    gl.uniformMatrix4fv(shProg.uScale,   false, scale);
+    gl.uniformMatrix4fv(shProg.uMove,    false, move);
+    gl.uniformMatrix4fv(shProg.uRot,     false, rot);
+}
+
+$('#sx').onmousemove = $('#sx').onchange = e => requestAnimationFrame(draw);
+$('#sy').onmousemove = $('#sy').onchange = e => requestAnimationFrame(draw);
+$('#dx').onmousemove = $('#dx').onchange = e => requestAnimationFrame(draw);
+$('#dy').onmousemove = $('#dy').onchange = e => requestAnimationFrame(draw);
+$('#an').onmousemove = $('#an').onmousewheel = $('#an').onchange = e => requestAnimationFrame(draw);
+
+
+
+function draw() {
+    gl.viewport(0, 0, gl.width, gl.height);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    // triangle
+    mat4.fromTranslation(move, [$('#dx').value, $('#dy').value, -15]);
+    mat4.fromScaling(scale, [$('#sx').value, $('#sy').value, 0]);
+    mat4.fromRotation(rot, glMatrix.toRadian($('#an').value), [0, 0, 1]);
+    setMatrixUniforms();
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, triangle);
+    gl.vertexAttribPointer(shProg.aVertPos, triangle.itemSize, gl.FLOAT, false, 0, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, triangle.size);
+}
+
+function loadWebGL(fs = 'task1/shader-fs.c', vs = 'task1/shader-vs.c') {
+    loadWebGLContext($('canvas'))
+        .then(gl => {
+            Promise.all([
+                loadShader(gl, gl.FRAGMENT_SHADER, fs),
+                loadShader(gl, gl.VERTEX_SHADER,   vs)])
+            .then(gl.utilCreateProgram.bind(gl))
+            .then(program => init(gl, program));
+        });
+}
+
+</script>
+</body>
+</html>

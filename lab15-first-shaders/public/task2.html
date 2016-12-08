@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Task 2</title>
+    <link rel="stylesheet" href="style.css">
+
+    <script src="lodash.min.js"></script>
+    <script src="bluebird.min.js"></script>
+    <script src="gl-matrix-min.js"></script>
+    <script src="gl-shaders.js"></script>
+    <script src="gl-util.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <canvas oncontextmenu="return false" width="800" height="600"></canvas>
+</div>
+
+<a href="/" class="back">◀</a>
+
+<script>
+
+let gl, shProg;
+
+let mvMatrix = mat4.create(),
+    pMatrix  = mat4.create();
+
+let triangleVertPosBuf, triangleColBuf,
+    squareVertPosBuf, squareColBuf;
+
+
+function init(webgl, program) {
+    shProg = program;
+    gl = webgl;
+
+    initShaders();
+    triangleVertPosBuf = createTriangleBuffer();
+    squareVertPosBuf   = createSquareBuffer();
+
+    gl.clearColor(0.99, 0.99, 0.99, 1.0);
+    gl.enable(gl.DEPTH_TEST);
+
+    draw(gl);
+}
+
+
+function initShaders() {
+    gl.useProgram(shProg);
+
+    shProg.aVertPos = gl.getAttribLocation(shProg, 'aVertPos');
+    gl.enableVertexAttribArray(shProg.aVertPos);
+
+    shProg.aVertCol = gl.getAttribLocation(shProg, 'aVertCol');
+    gl.enableVertexAttribArray(shProg.aVertCol);
+
+    shProg.uPMatrix  = gl.getUniformLocation(shProg, 'uPMatrix');
+    shProg.uMVMatrix = gl.getUniformLocation(shProg, 'uMVMatrix');
+}
+
+function setMatrixUniforms() {
+    gl.uniformMatrix4fv(shProg.uPMatrix,  false, pMatrix);
+    gl.uniformMatrix4fv(shProg.uMVMatrix, false, mvMatrix);
+}
+
+
+function createBufferForColor(vertCount, colors) {
+    buf = gl.createBuffer();
+    buf.size = vertCount;
+    buf.itemSize = 4;
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+    return buf;
+}
+
+function fillColorBuffer(vertCount, color) {
+    let colors = _.times(vertCount, _.constant(color)),
+        normed = _.map(_.flatten(colors), x => x / 255);
+
+    return createBufferForColor(vertCount, normed);
+}
+
+function rainbowColorBuffer() {
+    let colors = [1.0, 0.0, 0.0, 1.0,
+                  0.0, 1.0, 0.0, 1.0,
+                  0.0, 0.0, 1.0, 1.0];
+
+    return createBufferForColor(3, colors);
+}
+
+
+function draw() {
+    gl.viewport(0, 0, gl.width, gl.height);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+
+    // triangle
+    mat4.identity(mvMatrix);
+    mat4.translate(mvMatrix, mvMatrix, [-3, 0, -7]);
+    mat4.perspective(pMatrix, 45, gl.width / gl.height, 0.1, 100);
+    setMatrixUniforms();
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertPosBuf);
+    gl.vertexAttribPointer(shProg.aVertPos, triangleVertPosBuf.itemSize, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, fillColorBuffer(3, [33, 150, 243, 255]));
+    gl.vertexAttribPointer(shProg.aVertCol, 4, gl.FLOAT, false, 0, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, triangleVertPosBuf.size);
+
+
+    // square
+    mat4.translate(mvMatrix, mvMatrix, [3, 0, 0]);
+    setMatrixUniforms();
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, squareVertPosBuf);
+    gl.vertexAttribPointer(shProg.aVertPos, squareVertPosBuf.itemSize, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, fillColorBuffer(4, [33, 150, 243, 255]));
+    gl.vertexAttribPointer(shProg.aVertCol, 4, gl.FLOAT, false, 0, 0);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertPosBuf.size);
+
+
+    // triangle
+    mat4.translate(mvMatrix, mvMatrix, [3, 0, 0]);
+    setMatrixUniforms();
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertPosBuf);
+    gl.vertexAttribPointer(shProg.aVertPos, triangleVertPosBuf.itemSize, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, rainbowColorBuffer());
+    gl.vertexAttribPointer(shProg.aVertCol, 4, gl.FLOAT, false, 0, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, triangleVertPosBuf.size);
+}
+
+
+
+function loadWebGL() {
+    loadWebGLContext($('canvas'))
+        .then(gl => {
+            Promise.all([
+                loadShader(gl, gl.FRAGMENT_SHADER, 'task2/shader-fs.c'),
+                loadShader(gl, gl.VERTEX_SHADER,   'task2/shader-vs.c')])
+            .then(gl.utilCreateProgram.bind(gl))
+            .then(program => init(gl, program));
+        });
+}
+
+</script>
+</body>
+</html>
