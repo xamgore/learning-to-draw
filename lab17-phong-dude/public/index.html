@@ -326,7 +326,7 @@ function draw() {
 
     // triangle
     mat4.fromTranslation(mvMatrix, [0, 0, z]);  // -15
-    mat4.scale(mvMatrix, mvMatrix, [2, 2, 2]);
+    mat4.scale(mvMatrix, mvMatrix, [1, 1, 1]);
     mat4.rotate(mvMatrix, mvMatrix, glMatrix.toRadian(xRot), [1, 0, 0]);
     mat4.rotate(mvMatrix, mvMatrix, glMatrix.toRadian(yRot), [0, 1, 0]);
 
@@ -371,6 +371,22 @@ function draw() {
     }
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
+    setMatrixUniforms();
+
+    gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+
+
+    mat4.fromTranslation(mvMatrix, [3, 0, z]);  // -15
+    mat4.scale(mvMatrix, mvMatrix, [1, 1, 1]);
+    mat4.rotate(mvMatrix, mvMatrix, glMatrix.toRadian(xRot), [1, 0, 0]);
+    mat4.rotate(mvMatrix, mvMatrix, glMatrix.toRadian(yRot), [0, 1, 0]);
+    setMatrixUniforms();
+    gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+
+    mat4.fromTranslation(mvMatrix, [-3, 0, z]);  // -15
+    mat4.scale(mvMatrix, mvMatrix, [1, 1, 1]);
+    mat4.rotate(mvMatrix, mvMatrix, glMatrix.toRadian(xRot), [1, 0, 0]);
+    mat4.rotate(mvMatrix, mvMatrix, glMatrix.toRadian(yRot), [0, 1, 0]);
     setMatrixUniforms();
     gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 }
