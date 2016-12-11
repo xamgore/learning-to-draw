@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Task 1</title>
+    <link rel="stylesheet" href="style.css">
+
+    <script src="bluebird.min.js"></script>
+    <script src="gl-matrix-min.js"></script>
+    <script src="gl-shaders.js"></script>
+    <script src="gl-util.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <canvas oncontextmenu="return false" width="800" height="600"></canvas>
+</div>
+
+<div style="position: absolute; top: 10px; right: 10px; flex-grow: column">
+    size: <input id="sx" type="range" value="1" min="1" max="5" step="0.25"><br/>
+    <hr style="border: 1px solid black">
+    angle: <input id="an" type="number" value="90" step="2">
+    <hr style="border: 1px solid black">
+    dx: <input id="dx" type="range" value="0" min="-10" max="10" step="0.25"><br/>
+    dy: <input id="dy" type="range" value="0" min="-10" max="10" step="0.25"><br/>
+</div>
+<hr style="border: 1px solid black">
+<a href="/" class="back">◀</a>
+
+<script>
+
+let gl, shProg, cube;
+
+let
+    rot     = mat4.create(),
+    scale   = mat4.create(),
+    move    = mat4.create(),
+    project = mat4.create();
+
+
+function init(webgl, program) {
+    shProg = program;
+    gl = webgl;
+
+    // init shaders
+    gl.useProgram(shProg);
+
+    shProg.aVertPos = gl.getAttribLocation(shProg, 'aVertPos');
+    gl.enableVertexAttribArray(shProg.aVertPos);
+
+    shProg.aVertCol = gl.getAttribLocation(shProg, 'aVertCol');
+    gl.enableVertexAttribArray(shProg.aVertCol);
+
+    shProg.uProject = gl.getUniformLocation(shProg, 'uProject');
+    shProg.uMove    = gl.getUniformLocation(shProg, 'uMove');
+
+    // set environment
+    mat4.perspective(project, 45, gl.width / gl.height, 0.1, 100);
+
+    cubePos = genCubePos();
+    cubeCol = genCubeCol();
+    cubeVer = genCubeVer();
+
+    gl.clearColor(0.99, 0.99, 0.99, 1.0);
+    gl.enable(gl.DEPTH_TEST);
+
+    draw();
+}
+
+
+function setMatrixUniforms() {
+    gl.uniformMatrix4fv(shProg.uProject, false, project);
+    gl.uniformMatrix4fv(shProg.uMove,    false, move);
+}
+
+$('#sx').onmousemove = $('#sx').onchange = e => requestAnimationFrame(draw);
+$('#dx').onmousemove = $('#dx').onchange = e => requestAnimationFrame(draw);
+$('#dy').onmousemove = $('#dy').onchange = e => requestAnimationFrame(draw);
+$('#an').onmousemove = $('#an').onmousewheel = $('#an').onchange = e => requestAnimationFrame(draw);
+
+
+function genCubePos() {
+    let buf = gl.createBuffer();
+    buf.itemSize = 3;
+
+    var vertices = [
+      // Front face
+      -1.0, -1.0,  1.0,
+       1.0, -1.0,  1.0,
+       1.0,  1.0,  1.0,
+      -1.0,  1.0,  1.0,
+
+      // Back face
+      -1.0, -1.0, -1.0,
+      -1.0,  1.0, -1.0,
+       1.0,  1.0, -1.0,
+       1.0, -1.0, -1.0,
+
+      // Top face
+      -1.0,  1.0, -1.0,
+      -1.0,  1.0,  1.0,
+       1.0,  1.0,  1.0,
+       1.0,  1.0, -1.0,
+
+      // Bottom face
+      -1.0, -1.0, -1.0,
+       1.0, -1.0, -1.0,
+       1.0, -1.0,  1.0,
+      -1.0, -1.0,  1.0,
+
+      // Right face
+       1.0, -1.0, -1.0,
+       1.0,  1.0, -1.0,
+       1.0,  1.0,  1.0,
+       1.0, -1.0,  1.0,
+
+      // Left face
+      -1.0, -1.0, -1.0,
+      -1.0, -1.0,  1.0,
+      -1.0,  1.0,  1.0,
+      -1.0,  1.0, -1.0
+    ];
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+    buf.size = vertices.length / buf.itemSize;
+    return buf;
+}
+
+function genCubeCol() {
+    let buf = gl.createBuffer();
+    buf.itemSize = 4;
+
+    var colors = [
+      [0,  0,  0,  1.0],    // Front face: white
+      [1.0,  0.0,  0.0,  1.0],    // Back face: red
+      [0.0,  1.0,  0.0,  1.0],    // Top face: green
+      [0.0,  0.0,  1.0,  1.0],    // Bottom face: blue
+      [1.0,  1.0,  0.0,  1.0],    // Right face: yellow
+      [1.0,  0.0,  1.0,  1.0]     // Left face: purple
+    ];
+
+    var generatedColors = [];
+
+    for (j = 0; j < 6; j++) {
+        var c = colors[j];
+
+        for (var i = 0; i < 4; i++) {
+            generatedColors = generatedColors.concat(c);
+        }
+    }
+
+    buf.size = colors.length;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(generatedColors), gl.STATIC_DRAW);
+    return buf;
+}
+
+function genCubeVer() {
+    var buf = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buf);
+
+    var vals = [
+      0,  1,  2,      0,  2,  3,    // front
+      4,  5,  6,      4,  6,  7,    // back
+      8,  9,  10,     8,  10, 11,   // top
+      12, 13, 14,     12, 14, 15,   // bottom
+      16, 17, 18,     16, 18, 19,   // right
+      20, 21, 22,     20, 22, 23,   // left
+    ];
+
+    buf.itemSize = 1;
+    buf.size = vals.length;
+
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(vals), gl.STATIC_DRAW);
+    return buf;
+}
+
+
+function draw() {
+    gl.viewport(0, 0, gl.width, gl.height);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    // triangle
+    mat4.fromTranslation(move, [$('#dx').value, $('#dy').value, -15]);
+    mat4.rotate(move, move, glMatrix.toRadian($('#an').value), [1, 1, 1]);
+    mat4.scale(move, move, [$('#sx').value, $('#sx').value, $('#sx').value]);
+    setMatrixUniforms();
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, cubePos);
+    gl.vertexAttribPointer(shProg.aVertPos, cubePos.itemSize, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, cubeCol);
+    gl.vertexAttribPointer(shProg.aVertCol, cubeCol.itemSize, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVer);
+    gl.drawElements(gl.TRIANGLES, cubeVer.size, gl.UNSIGNED_SHORT, 0);
+}
+
+function loadWebGL(fs = 'task1/shader-fs.c', vs = 'task1/shader-vs.c') {
+    loadWebGLContext($('canvas'))
+        .then(gl => {
+            Promise.all([
+                loadShader(gl, gl.FRAGMENT_SHADER, fs),
+                loadShader(gl, gl.VERTEX_SHADER,   vs)])
+            .then(gl.utilCreateProgram.bind(gl))
+            .then(program => init(gl, program));
+        });
+}
+
+</script>
+</body>
+</html>
