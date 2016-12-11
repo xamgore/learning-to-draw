@@ -400,6 +400,9 @@ function animate() {
 
         xRot += (xSpeed * elapsed) / 1000.0;
         yRot += (ySpeed * elapsed) / 1000.0;
+
+        $('#lightDirectionX').value = 2*Math.sin(timeNow / 1000);
+        $('#lightDirectionY').value = 2*Math.cos(timeNow / 1000);
     }
     lastTime = timeNow;
 }
