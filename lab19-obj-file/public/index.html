@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Task 1</title>
+    <link rel="stylesheet" href="style.css">
+
+    <script src="bluebird.min.js"></script>
+    <script src="gl-matrix-min.js"></script>
+    <script src="gl-shaders.js"></script>
+    <script src="gl-util.js"></script>
+    <script src="webgl-obj-loader.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <canvas oncontextmenu="return false" width="800" height="600"></canvas>
+</div>
+
+<a href="/" class="back">◀</a>
+
+<script>
+
+let gl, shaderProgram, cube;
+
+var mvMatrix = mat4.create();
+var pMatrix = mat4.create();
+
+
+function init(webgl, program) {
+    shaderProgram = program;
+    gl = webgl;
+
+    // init shaders
+    gl.useProgram(shaderProgram);
+
+    shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+    gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+    shaderProgram.vertexNormalAttribute = gl.getAttribLocation(shaderProgram, "aVertexNormal");
+    gl.enableVertexAttribArray(shaderProgram.vertexNormalAttribute);
+
+    shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
+    gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+
+    shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+    shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+    shaderProgram.nMatrixUniform = gl.getUniformLocation(shaderProgram, "uNMatrix");
+    shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
+    shaderProgram.useLightingUniform = gl.getUniformLocation(shaderProgram, "uUseLighting");
+    shaderProgram.ambientColorUniform = gl.getUniformLocation(shaderProgram, "uAmbientColor");
+    shaderProgram.lightingDirectionUniform = gl.getUniformLocation(shaderProgram, "uLightingDirection");
+    shaderProgram.directionalColorUniform = gl.getUniformLocation(shaderProgram, "uDirectionalColor");
+
+    // set environment
+    mat4.perspective(pMatrix, 45, gl.width / gl.height, 0.1, 100);
+
+    document.onkeydown = handleKeyDown;
+    document.onkeyup = handleKeyUp;
+
+    gl.clearColor(0.99, 0.99, 0.99, 1.0);
+    gl.enable(gl.DEPTH_TEST);
+
+    initTexture();
+
+}
+
+
+
+function handleLoadedTexture(texture) {
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.MIRRORED_REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT);
+    gl.generateMipmap(gl.TEXTURE_2D);
+
+    gl.bindTexture(gl.TEXTURE_2D, null);
+
+        OBJ.downloadMeshes({ 'cube': 'african_head.obj' }, t => {
+            cube = t.cube;
+            OBJ.initMeshBuffers(gl, cube);
+            tick();
+        });
+}
+
+var crateTexture;
+
+function initTexture() {
+    crateTexture = gl.createTexture();
+    crateTexture.image = new Image();
+    crateTexture.image.src = "african_head_SSS.jpg"; //african_head_SSS.jpg // crate.gif
+    crateTexture.image.onload = function () {
+        handleLoadedTexture(crateTexture);
+    }
+}
+
+
+function setMatrixUniforms() {
+    gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
+    gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
+
+    var normalMatrix = mat3.create();
+    mat3.normalFromMat4(normalMatrix, mvMatrix);
+    gl.uniformMatrix3fv(shaderProgram.nMatrixUniform, false, normalMatrix);
+}
+
+var xRot = 0;
+var xSpeed = 3;
+
+var yRot = 0;
+var ySpeed = -3;
+
+var z = -15.0;
+
+var currentlyPressedKeys = {};
+
+function handleKeyDown(event) {
+    currentlyPressedKeys[event.keyCode] = true;
+}
+
+function handleKeyUp(event) {
+    currentlyPressedKeys[event.keyCode] = false;
+}
+
+
+function handleKeys() {
+    if (currentlyPressedKeys[33]) {
+        // Page Up
+        z -= 0.05;
+    }
+    if (currentlyPressedKeys[34]) {
+        // Page Down
+        z += 0.05;
+    }
+    if (currentlyPressedKeys[37]) {
+        // Left cursor key
+        ySpeed -= 1;
+    }
+    if (currentlyPressedKeys[39]) {
+        // Right cursor key
+        ySpeed += 1;
+    }
+    if (currentlyPressedKeys[38]) {
+        // Up cursor key
+        xSpeed -= 1;
+    }
+    if (currentlyPressedKeys[40]) {
+        // Down cursor key
+        xSpeed += 1;
+    }
+}
+
+
+var cubeVertexPositionBuffer;
+var cubeVertexNormalBuffer;
+var cubeVertexTextureCoordBuffer;
+var cubeVertexIndexBuffer;
+
+
+function draw() {
+    gl.viewport(0, 0, gl.width, gl.height);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    // triangle
+    mat4.fromTranslation(mvMatrix, [0, 0, z]);  // -15
+    mat4.scale(mvMatrix, mvMatrix, [5, 5, 5]);
+    mat4.rotate(mvMatrix, mvMatrix, glMatrix.toRadian(xRot), [1, 0, 0]);
+    mat4.rotate(mvMatrix, mvMatrix, glMatrix.toRadian(yRot), [0, 1, 0]);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, cube.vertexBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, cube.vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+    if (!cube.textures.length) {
+        gl.disableVertexAttribArray(shaderProgram.textureCoordAttribute);
+    } else {
+        gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+        gl.bindBuffer(gl.ARRAY_BUFFER, cube.textureBuffer);
+        gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, cube.textureBuffer.itemSize, gl.FLOAT, false, 0, 0);
+    }
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, cube.normalBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, cube.normalBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, crateTexture);
+    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+
+    lighting = true;
+    gl.uniform1i(shaderProgram.samplerUniform, 0);
+    gl.uniform1i(shaderProgram.useLightingUniform, lighting);
+    if (lighting) {
+        gl.uniform3f( shaderProgram.ambientColorUniform, 1, 1, 1 );
+        var lightingDirection = [ -0.25, -0.25, -1 ];
+        var adjustedLD = vec3.create();
+        vec3.normalize(adjustedLD, lightingDirection);
+        vec3.scale(adjustedLD, adjustedLD, -1);
+        gl.uniform3fv(shaderProgram.lightingDirectionUniform, adjustedLD);
+        gl.uniform3f( shaderProgram.directionalColorUniform, 1, 1, 1 );
+    }
+
+
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cube.indexBuffer);
+    gl.drawElements(gl.TRIANGLES, cube.indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+
+    setMatrixUniforms();
+}
+
+var lastTime = 0;
+
+function animate() {
+    var timeNow = new Date().getTime();
+    if (lastTime != 0) {
+        var elapsed = timeNow - lastTime;
+
+        xRot += (xSpeed * elapsed) / 1000.0;
+        yRot += (ySpeed * elapsed) / 1000.0;
+    }
+    lastTime = timeNow;
+}
+
+
+function tick() {
+    requestAnimationFrame(tick);
+    handleKeys();
+    draw();
+    animate();
+}
+
+
+
+function loadWebGL(fs = 'task1/shader-fs.c', vs = 'task1/shader-vs.c') {
+    loadWebGLContext($('canvas'))
+        .then(gl => {
+            Promise.all([
+                loadShader(gl, gl.FRAGMENT_SHADER, fs),
+                loadShader(gl, gl.VERTEX_SHADER,   vs)])
+            .then(gl.utilCreateProgram.bind(gl))
+            .then(program => init(gl, program));
+        });
+}
+
+</script>
+</body>
+</html>
