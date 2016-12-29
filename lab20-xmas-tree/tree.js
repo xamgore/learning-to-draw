@@ -238,7 +238,7 @@ var Star = function() {
 Star.prototype = Object.create(THREE.Group.prototype);
 Star.prototype.constructor = Star;
 Star.prototype.updatePosition = function() {
-//    this.rotateY(0.005);
+    this.rotateY(0.005);
 };
 
 var Decoration = function() {
