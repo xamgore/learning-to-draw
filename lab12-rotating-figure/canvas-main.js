@@ -46,17 +46,31 @@ function loadMain() {
     setInterval(() => !mousedown | figure.apply(autorotate(figure)), 30);
 
 
-    const render = () => {
+    let render = () => {
         const lineTo = p => ctx.lineTo(p.x + cx, -p.y + cy);
 
         const project = V => new Vertex2D(V.x, V.z);
 
+        const cos = (x, y, z) => {
+            a = _.mergeWith(_.clone(x), y, _.subtract),
+            b = _.mergeWith(_.clone(z), y, _.subtract),
+            i = (a.y * b.z - a.z * b.y),
+            j = (a.x * b.z - a.z * b.x),
+            k = (a.x * b.y - a.y * b.x);
+            return (j / Math.sqrt(i*i + j*j + k*k));
+        }
+
         const drawFace = face => {
-            ctx.beginPath();
-            _.each(_.map(face, project), lineTo);
-    		ctx.closePath();
-    		ctx.stroke();
-    		ctx.fill();
+            let [x, y, z, w] = face,
+                c = cos(x, y, z) || cos(x, z, w);
+
+            if (c >= 0) {
+                ctx.beginPath();
+                _.each(_.map(face, project), lineTo);
+        		ctx.closePath();
+        		ctx.stroke();
+        		ctx.fill();
+            }
         };
 
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -70,34 +84,4 @@ function loadMain() {
 
 
     return f => figure = f;
-}
-
-
-
-// let $       = (s) => document.querySelector(s),
-//     $$      = (s) => document.querySelectorAll(s),
-//     // $canvas = $('canvas'),
-//     ctx     = $canvas.getContext("2d"),
-//     drawing = false;
-
-// ctx.canvas.width = width;
-// ctx.canvas.height = height;
-
-// Array.prototype.equals = function([x, y, _]) {
-//     return this[0] == x && this[1] == y;
-// }
-//
-// Array.prototype.remove = function(elem) {
-//     let copy = this.slice(0, this.length);
-//     copy.splice(this.indexOf(elem), 1);
-//     return copy;
-// };
-
-
-Array.prototype.getVertices = function(d, center) {
-    return _.map(this, ([x, y, z]) => new Vertex(center.x + x*d, center.y + y*d, center.z + z*d));
-}
-
-Array.prototype.getFaces = function(vertices) {
-    return _.map(this, arr => _.map(arr, i => vertices[i]));
 }

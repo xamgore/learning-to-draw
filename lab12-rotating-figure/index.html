@@ -24,7 +24,7 @@ Object.prototype.__defineGetter__('d', function () { return JSON.stringify(this,
 let updateFigure = loadMain();
 
 loadFig(pts => {
-    let walls = 4,
+    let walls = 20,
         dots = _.range(walls).map( () => _.cloneDeep(pts) ),
         axes = dots.map( a => a.map(pt => new Vertex(...pt, 0)) ),
         rot  = (v, angle) => v.apply(M.rotateOy(angle / 180 * Math.PI));

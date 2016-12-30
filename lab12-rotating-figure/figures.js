@@ -1,3 +1,12 @@
+Array.prototype.getVertices = function(d, center) {
+    return _.map(this, ([x, y, z]) => new Vertex(center.x + x*d, center.y + y*d, center.z + z*d));
+}
+
+Array.prototype.getFaces = function(vertices) {
+    return _.map(this, arr => _.map(arr, i => vertices[i]));
+}
+
+
 var Vertex = function(x, y, z) {
 	this.x = parseFloat(x);
 	this.y = parseFloat(y);
