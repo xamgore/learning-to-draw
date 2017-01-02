@@ -1,4 +1,4 @@
-var figure;
+var figure, count;
 
 function loadMain() {
     let $canvas = document.querySelector(`#main`),
@@ -40,6 +40,7 @@ function loadMain() {
     document.onwheel = e => {
         let s = e.deltaY > 0 ? 9/10 : 10/9;
         figure.apply(M.scale(s, s, s));
+        console.log('applied');
     }
 
 
@@ -54,45 +55,62 @@ function loadMain() {
 
     const shouldDraw = ([x, y, z, w]) => (cos(x, y, z) || cos(x, z, w)) >= 0;
 
-    const belongs = (px, py, [{x:ax, y:az, z:ay}, {x:bx, y:bz, z:by}, {x:cx, y:cz, z:cy}, {x:dx, y:dz, z:dy}]) => {
-        return (
-            (bx-ax)*(py-ay)-(by-ay)*(px-ax) < 0 &&
-            (cx-bx)*(py-by)-(cy-by)*(px-bx) < 0 &&
-            (ax-cx)*(py-cy)-(ay-cy)*(px-cx) < 0
-        ) || (
-            (cx-ax)*(py-ay)-(cy-ay)*(px-ax) < 0 &&
-            (dx-cx)*(py-cy)-(dy-cy)*(px-cx) < 0 &&
-            (ax-dx)*(py-dy)-(ay-dy)*(px-dx) < 0
-        )
-    }
-
     var img = ctx.createImageData(ctx.canvas.width, ctx.canvas.height),
         cw = ctx.canvas.width, ch = ctx.canvas.height,
-        data = img.data;
+        data = img.data,
+        col = 0;
+
+    count = 0;
+    const drawLine = (x0, y0, x1, y1) => {
+        if (count > 20) return;
+        count++;
+
+        const dx = Math.abs(x1 - x0);
+        const dy = Math.abs(y1 - y0);
+        const sx = (x0 < x1) ? 1 : -1;
+        const sy = (y0 < y1) ? 1 : -1;
+        var err = dx - dy;
+
+        while (true) {
+            const pidx = ((cx-x0|0) * cw + (cy-y0|0)) * 4;
+            // console.log((cx-x0)|0, (cy-y0)|0, pidx);
+
+            data[pidx] = col;
+            data[pidx+3] = 255;
+
+            if ((x0 == x1) && (y0 == y1)) break;
+            const e2 = 2 * err;
+            if (e2 > -dy) { err -= dy; x0  += sx; }
+            if (e2 <  dx) { err += dx; y0  += sy; }
+        }
+    }
 
     const render = () => {
+        // figure.apply(M.scale(0.5, 0.5, 0.5));
         let faces = figure.faces.filter(shouldDraw);
         let dr = 255.0 / faces.length;
         let fl = faces.length;
         data.fill(0);
 
-        for (let i = 0; i < cw; i++) {
-            for (let j = 0; j < ch; j++) {
+        console.log(`len: ${fl}`);
 
-                for (let fi = 0; fi < fl; fi++) {
-                    if (belongs(i - cx, j - cy, faces[fi])) {
-                        const pidx = (i * cw + j) * 4;
-                        data[pidx] = fi * dr|0;
-                        data[pidx+3] = 255;
-                    }
-                }
-            }
+        for (let fi = 0; fi < fl; fi++) {
+            let [a, b, c, d] = faces[fi];
+            col = fi * dr|0;
+
+            drawLine(a.x, a.z, b.x, b.z);
+            // drawLine(b.x, b.z, c.x, c.z);
+            // drawLine(c.x, c.z, d.x, d.z);
+            // drawLine(d.x, d.z, a.x, a.z);
         }
 
+        console.log(count);
         ctx.putImageData(img, 0, 0);
-        requestAnimationFrame(render);
+        setTimeout(() => requestAnimationFrame(render), 1000);
     };
 
+    figure.apply(M.scale(0.5, 0.5, 0.5));
+    // figure.apply(rotate(figure.center, 10 * Math.PI / 360, 10 * Math.PI / 180));
     render();
 
     return f => figure = f;
