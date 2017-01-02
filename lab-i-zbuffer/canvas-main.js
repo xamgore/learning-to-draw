@@ -22,10 +22,10 @@ function loadMain() {
     };
 
 
-    let moving = false, rotating = true;
+    let moving = false;
 
     const move = evt => {
-    	if (!moving) return;
+    	if (!evt.buttons) return;
 
     	let theta = evt.movementX * Math.PI / 360,
     	      phi = evt.movementY * Math.PI / 180;
@@ -35,75 +35,53 @@ function loadMain() {
                     : rotate(figure.center, theta, phi));
     }
 
-    const startAutorotate = _.debounce(() => rotating = true, 300);
-
-    $canvas.addEventListener('mousedown', () => { rotating = false; moving = true });
-    $canvas.addEventListener('mouseup',   () => { startAutorotate(); moving = false });
-    document.addEventListener('mousemove', move);
+    document.onmousemove = move;
 
     document.onwheel = e => {
         let s = e.deltaY > 0 ? 9/10 : 10/9;
         figure.apply(M.scale(s, s, s));
     }
 
-    const autorotate = f => rotate(f.center, -Math.PI / 720, Math.PI / 720);
-    setInterval(() => rotating && figure.apply(autorotate(figure)), 30);
+
+    const cos = (x, y, z) => {
+        ax = x.x - y.x, ay = x.y - y.y, az = x.z - y.z,
+        bx = z.x - y.x, by = z.y - y.y, bz = z.z - y.z,
+        i = ay * bz - az * by,
+        j = ax * bz - az * bx,
+        k = ax * by - ay * bx;
+        return (j / Math.sqrt(i*i + j*j + k*k));
+    }
+
+    const shouldDraw = ([x, y, z, w]) => (cos(x, y, z) || cos(x, z, w)) >= 0;
+
+    const belongs = (px, py, [{x:ax, y:az, z:ay}, {x:bx, y:bz, z:by}, {x:cx, y:cz, z:cy}, {x:dx, y:dz, z:dy}]) => {
+        return (
+            (bx-ax)*(py-ay)-(by-ay)*(px-ax) < 0 &&
+            (cx-bx)*(py-by)-(cy-by)*(px-bx) < 0 &&
+            (ax-cx)*(py-cy)-(ay-cy)*(px-cx) < 0
+        ) || (
+            (cx-ax)*(py-ay)-(cy-ay)*(px-ax) < 0 &&
+            (dx-cx)*(py-cy)-(dy-cy)*(px-cx) < 0 &&
+            (ax-dx)*(py-dy)-(ay-dy)*(px-dx) < 0
+        )
+    }
 
     var img = ctx.createImageData(ctx.canvas.width, ctx.canvas.height),
+        cw = ctx.canvas.width, ch = ctx.canvas.height,
         data = img.data;
 
-    let render = () => {
-        const lineTo = p => ctx.lineTo(p.x + cx, -p.y + cy);
-
-        const project = V => new Vertex2D(V.x, V.z);
-
-        const cos = (x, y, z) => {
-            a = _.mergeWith(_.clone(x), y, _.subtract),
-            b = _.mergeWith(_.clone(z), y, _.subtract),
-            i = (a.y * b.z - a.z * b.y),
-            j = (a.x * b.z - a.z * b.x),
-            k = (a.x * b.y - a.y * b.x);
-            return (j / Math.sqrt(i*i + j*j + k*k));
-        }
-
-        const shouldDraw = ([x, y, z, w]) => (cos(x, y, z) || cos(x, z, w)) >= 0;
-
+    const render = () => {
         let faces = figure.faces.filter(shouldDraw);
         let dr = 255.0 / faces.length;
-
-        const drawFace = (face, i) => {
-            ctx.fillStyle = `rgba(${i*dr|0}, 0, 0, 1)`;
-            ctx.beginPath();
-            _.each(_.map(face, project), lineTo);
-    		ctx.closePath();
-    		ctx.fill();
-        };
-
-        // ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        // let img = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height),
-
-        const position = ({x:px, y:py}, {x:ax, y:az, z:ay}, {x:bx, y:bz, z:by}) => {
-            return (bx-ax)*(py-ay)-(by-ay)*(px-ax);
-        }
-
-        const inTriangle = (p, a, b, c) => {
-            return (position(p, a, b) < 0) && (position(p, b, c) < 0) && (position(p, c, a) < 0);
-        }
-
-        const belongs = (p, [a, b, c, d]) => {
-            return inTriangle(p, a, b, c) || inTriangle(p, a, c, d);
-        }
-
-        let cw = ctx.canvas.width, ch = ctx.canvas.height, fl = faces.length;
+        let fl = faces.length;
+        data.fill(0);
 
         for (let i = 0; i < cw; i++) {
             for (let j = 0; j < ch; j++) {
-                const p = {x: i - cx, y: j - cy};
 
                 for (let fi = 0; fi < fl; fi++) {
-                    const pidx = (i * cw + j)*4;
-
-                    if (belongs(p, faces[fi])) {
+                    if (belongs(i - cx, j - cy, faces[fi])) {
+                        const pidx = (i * cw + j) * 4;
                         data[pidx] = fi * dr|0;
                         data[pidx+3] = 255;
                     }
@@ -112,13 +90,10 @@ function loadMain() {
         }
 
         ctx.putImageData(img, 0, 0);
-
-        // _.each(faces, drawFace);
         requestAnimationFrame(render);
     };
 
     render();
-
 
     return f => figure = f;
 }
