@@ -1,53 +1,24 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <title>task1</title></head>
-    <link rel="stylesheet" href="style.css">
+    <title>task1</title>
+    <style>
+        canvas {
+            width: 400px;
+            height: 400px;
+        }
+
+        body {
+            display: flex; justify-content: center; height: 100%; align-items: center;
+        }
+
+        html { height: 100% }
+    </style>
+    <script src="babylon.math.js"></script>
+    <script src="render.js"></script>
+    <script src="main.js"></script>
 </head>
 <body>
-
-<div class="container  nonselectable">
-    <canvas oncontextmenu="return false" id="fig"></canvas>
-    <canvas oncontextmenu="return false" id="main"></canvas>
-</div>
-
-<script src="lodash.js"></script>
-<script src="canvas-main.js"></script>
-<script src="canvas-fig.js"></script>
-<script src="figures.js"></script>
-<script src="motions.js"></script>
-<script>
-
-Object.prototype.__defineGetter__('d', function () { return JSON.stringify(this, null, 2) });
-
-let updateFigure = loadMain();
-
-loadFig(pts => {
-    let walls = 4,
-        dots = _.range(walls).map( () => _.cloneDeep(pts) ),
-        axes = dots.map( a => a.map(pt => new Vertex(...pt, 0)) ),
-        rot  = (v, angle) => v.apply(M.rotateOy(angle / 180 * Math.PI));
-
-    axes.forEach( (a, i) => a.forEach(v => rot(v, -(360 / walls) * i)) );
-    axes = _.flatten(axes);
-
-    let count = pts.length * walls
-        face  = i => [i, i + 1, (i + 1 + pts.length) % count, (i + pts.length) % count],
-        faces = _.range(0, walls).map(a => _.range(0, pts.length - 1).map(x => x + a * pts.length).map(face));
-
-    let center = new Vertex(0, _.last(pts)[1] / 2, 0);
-
-    updateFigure({
-        center:   center,
-        color:    'rgba(255, 0, 150, 0.3)',
-        faces:    _.flatten(faces).getFaces(axes),
-        vertices: axes.concat(center),
-        apply(matr) { _.each(this.vertices, v => v.apply(matr)) }
-    });
-});
-
-
-</script>
+    <canvas id="frontBuffer" width="400" height="400" style="background-color: white;"></canvas>
 </body>
 </html>
